@@ -5,17 +5,18 @@ import { DataUploader } from '@/components/DataUploader'
 import { ChartSelector } from '@/components/ChartSelector'
 import { ChartViewer } from '@/components/ChartViewer'
 import { ConfigPanel } from '@/components/ConfigPanel'
-import { ThemeManager } from '@/components/ThemeManager'
 import type { ProcessedData } from '@/types/data.types'
-import type { ChartPlugin } from '@/types/chart.types'
+import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 
 function App() {
   const { plugin, config, data, selectPlugin, updateConfig, updateData, resetConfig } = useChartConfig()
-  const { themes, activeTheme, activeId, selectTheme, addCustomTheme } = useTheme()
+  const { themes, activeTheme, activeId, selectTheme } = useTheme()
 
   const handleDataLoaded = (d: ProcessedData) => updateData(d)
-
   const handlePluginSelect = (p: ChartPlugin) => selectPlugin(p, data)
+  const handleApplyPreset = (overrides: Partial<ChartConfig>) => {
+    Object.entries(overrides).forEach(([k, v]) => updateConfig(k, v))
+  }
 
   const showWorkspace = plugin !== null && data !== null
 
@@ -44,18 +45,10 @@ function App() {
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar izquierdo */}
-        <aside className="w-64 shrink-0 flex flex-col gap-4 p-4 border-r border-white/5 overflow-y-auto">
+        <aside className="w-60 shrink-0 flex flex-col gap-4 p-4 border-r border-white/5 overflow-y-auto">
           <DataUploader onDataLoaded={handleDataLoaded} />
           <div className="border-t border-white/5 pt-4">
             <ChartSelector activeId={plugin?.id ?? null} onSelect={handlePluginSelect} />
-          </div>
-          <div className="border-t border-white/5 pt-4">
-            <ThemeManager
-              themes={themes}
-              activeId={activeId}
-              onSelect={selectTheme}
-              onThemeAdded={addCustomTheme}
-            />
           </div>
         </aside>
 
@@ -94,8 +87,12 @@ function App() {
               plugin={plugin}
               config={config}
               data={data}
+              themes={themes}
+              activeThemeId={activeId}
               onChange={updateConfig}
               onReset={resetConfig}
+              onThemeSelect={selectTheme}
+              onApplyPreset={handleApplyPreset}
             />
           </aside>
         )}
