@@ -97,7 +97,7 @@ export const ScatterChart: ChartPlugin = {
   name: 'Dispersión',
   description: 'Explorar correlaciones entre variables',
   icon: 'ScatterChart',
-  category: 'distribution',
+  category: 'correlation',
   configSections: SCATTER_CONFIG_SECTIONS,
   defaultConfig: {
     xAxis: '',
@@ -112,6 +112,7 @@ export const ScatterChart: ChartPlugin = {
     seriesType: 'scatter',
     pointSize: 10,
     showGlow: true,
+    numericColumns: [],
   },
   buildOption,
 }

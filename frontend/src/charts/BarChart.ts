@@ -105,6 +105,7 @@ export const BarChart: ChartPlugin = {
     useGradient: true,
     horizontal: false,
     showLabels: false,
+    numericColumns: [],
   },
   buildOption,
 }

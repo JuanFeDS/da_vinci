@@ -111,6 +111,7 @@ export const LineChart: ChartPlugin = {
     lineWidth: 3,
     showPoints: true,
     showLabels: false,
+    numericColumns: [],
   },
   buildOption,
 }

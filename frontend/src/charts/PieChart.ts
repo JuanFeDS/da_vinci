@@ -103,6 +103,7 @@ export const PieChart: ChartPlugin = {
     borderRadius: 4,
     showLabels: true,
     showValues: false,
+    numericColumns: [],
   },
   buildOption,
 }
