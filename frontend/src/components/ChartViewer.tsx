@@ -1,11 +1,12 @@
 import { useRef, useMemo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import type EChartsReact from 'echarts-for-react'
-import { Download, RotateCcw } from 'lucide-react'
+import { Download, RotateCcw, FileJson } from 'lucide-react'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { Theme } from '@/types/theme.types'
 import type { DataRow } from '@/types/data.types'
 import { exportChartAsPNG } from '@/utils/chartExport'
+import { exportConfigAsJSON } from '@/utils/configExport'
 
 interface Props {
   plugin: ChartPlugin
@@ -18,15 +19,21 @@ interface Props {
 export function ChartViewer({ plugin, config, data, theme, onReset }: Props) {
   const chartRef = useRef<EChartsReact | null>(null)
 
+  const canRender = plugin.canRender
+    ? plugin.canRender(config)
+    : !!(config.xAxis && config.yAxis)
+
   const option = useMemo(() => {
-    if (!config.xAxis || !config.yAxis) return null
+    if (!canRender) return null
     return plugin.buildOption(data, config, theme)
-  }, [plugin, config, data, theme])
+  }, [plugin, config, data, theme, canRender])
 
   const handleExport = () => {
     const instance = chartRef.current?.getEchartsInstance()
-    if (instance) exportChartAsPNG(instance, config.title as string || plugin.name)
+    if (instance) exportChartAsPNG(instance, (config.title as string) || plugin.name)
   }
+
+  const handleExportJSON = () => exportConfigAsJSON(plugin.id, config, theme)
 
   return (
     <div className="relative flex flex-col h-full glass rounded-2xl overflow-hidden">
@@ -42,12 +49,13 @@ export function ChartViewer({ plugin, config, data, theme, onReset }: Props) {
         </div>
         <div className="flex items-center gap-1">
           <button onClick={onReset} className="btn-ghost text-xs flex items-center gap-1.5 py-1.5">
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset
+            <RotateCcw className="w-3.5 h-3.5" /> Reset
+          </button>
+          <button onClick={handleExportJSON} className="btn-ghost text-xs flex items-center gap-1.5 py-1.5">
+            <FileJson className="w-3.5 h-3.5" /> JSON
           </button>
           <button onClick={handleExport} className="btn-primary text-xs flex items-center gap-1.5 py-1.5">
-            <Download className="w-3.5 h-3.5" />
-            PNG
+            <Download className="w-3.5 h-3.5" /> PNG
           </button>
         </div>
       </div>
