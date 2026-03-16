@@ -26,6 +26,7 @@ export default {
           light:   '#a594ff',
         },
       },
+      opacity: { 8: '0.08', 15: '0.15', 35: '0.35' },
       backgroundImage: {
         'grid-pattern': "url(\"data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0M-10 10L10-10M30 50L50 30' stroke='%23ffffff08' stroke-width='1'/%3E%3C/svg%3E\")",
       },
