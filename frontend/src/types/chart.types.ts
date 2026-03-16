@@ -2,7 +2,9 @@ import type { EChartsOption } from 'echarts'
 import type { DataRow, ProcessedData } from './data.types'
 import type { Theme } from './theme.types'
 
-export type ControlType = 'select' | 'color' | 'switch' | 'slider' | 'text' | 'colorList'
+export type ControlType = 'select' | 'color' | 'switch' | 'slider' | 'text'
+
+export type ChartCategory = 'comparison' | 'trend' | 'distribution' | 'correlation' | 'proportion'
 
 export interface ControlOption {
   label: string
@@ -37,6 +39,7 @@ export interface ChartConfig {
   opacity: number
   labelPosition: string
   seriesType: string
+  numericColumns: string[]
   [key: string]: unknown
 }
 
@@ -45,10 +48,11 @@ export interface ChartPlugin {
   name: string
   description: string
   icon: string
-  category: string
+  category: ChartCategory
   configSections: ConfigSection[]
   defaultConfig: ChartConfig
   buildOption: (data: DataRow[], config: ChartConfig, theme: Theme) => EChartsOption
+  canRender?: (config: ChartConfig) => boolean
 }
 
 export interface ChartState {
