@@ -2,16 +2,29 @@ import { useState, useCallback } from 'react'
 import type { ChartConfig, ChartPlugin } from '@/types/chart.types'
 import type { ProcessedData } from '@/types/data.types'
 
+const PIE_IDS = ['pie', 'donut', 'treemap']
+const SCATTER_IDS = ['scatter', 'bubble']
+const MULTI_SERIES_IDS = ['grouped-bar', 'stacked-bar']
+
 function autoAssignAxes(plugin: ChartPlugin, data: ProcessedData): Partial<ChartConfig> {
   const { numeric_columns, categorical_columns, columns } = data
-  const overrides: Partial<ChartConfig> = {}
+  const overrides: Partial<ChartConfig> = { numericColumns: numeric_columns }
 
-  if (plugin.id === 'pie') {
+  if (PIE_IDS.includes(plugin.id)) {
     overrides.xAxis = categorical_columns[0] ?? columns[0] ?? ''
     overrides.yAxis = numeric_columns[0] ?? columns[1] ?? ''
-  } else if (plugin.id === 'scatter') {
+  } else if (SCATTER_IDS.includes(plugin.id)) {
     overrides.xAxis = numeric_columns[0] ?? columns[0] ?? ''
     overrides.yAxis = numeric_columns[1] ?? numeric_columns[0] ?? columns[1] ?? ''
+  } else if (plugin.id === 'histogram') {
+    overrides.xAxis = numeric_columns[0] ?? columns[0] ?? ''
+    overrides.yAxis = '_auto_'
+  } else if (plugin.id === 'heatmap') {
+    overrides.xAxis = categorical_columns[0] ?? columns[0] ?? ''
+    overrides.yAxis = categorical_columns[1] ?? columns[1] ?? ''
+  } else if (MULTI_SERIES_IDS.includes(plugin.id)) {
+    overrides.xAxis = categorical_columns[0] ?? columns[0] ?? ''
+    overrides.yAxis = numeric_columns[0] ?? columns[1] ?? ''
   } else {
     overrides.xAxis = categorical_columns[0] ?? columns[0] ?? ''
     overrides.yAxis = numeric_columns[0] ?? columns[1] ?? ''
