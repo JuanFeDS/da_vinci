@@ -5,6 +5,7 @@ import type { ElementOverride } from '@/types/chart.types'
 interface Props {
   override: ElementOverride
   onUpdate: (patch: Partial<ElementOverride>) => void
+  onUpdateAll: (patch: Partial<ElementOverride>) => void
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -16,7 +17,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-export function AppearanceControls({ override, onUpdate }: Props) {
+export function AppearanceControls({ override, onUpdate, onUpdateAll }: Props) {
   return (
     <div className="space-y-3">
       <p className="section-label">Apariencia</p>
@@ -29,6 +30,13 @@ export function AppearanceControls({ override, onUpdate }: Props) {
             onChange={(e) => onUpdate({ color: e.target.value })}
             className={cn('w-7 h-7 rounded-md border cursor-pointer', override.color ? 'border-white/30' : 'border-white/10 opacity-40')}
           />
+          <button
+            onClick={() => onUpdateAll({ color: (override.color as string) ?? '#7c6aff' })}
+            title="Aplicar este color a todos los elementos de la serie"
+            className="text-[10px] text-white/40 hover:text-accent-light border border-white/10 hover:border-accent/30 rounded px-1.5 py-0.5 transition-colors"
+          >
+            Todos
+          </button>
           {override.color && (
             <button onClick={() => onUpdate({ color: undefined })} className="text-xs text-white/30 hover:text-white/60">✕</button>
           )}

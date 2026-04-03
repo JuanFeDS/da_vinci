@@ -9,11 +9,12 @@ interface Props {
   override: ElementOverride
   inspectorActive: boolean
   onUpdate: (patch: Partial<ElementOverride>) => void
+  onUpdateAll: (patch: Partial<ElementOverride>) => void
   onReset: () => void
   onClearSelection: () => void
 }
 
-export function InspectorPanel({ selected, override, inspectorActive, onUpdate, onReset, onClearSelection }: Props) {
+export function InspectorPanel({ selected, override, inspectorActive, onUpdate, onUpdateAll, onReset, onClearSelection }: Props) {
   if (!inspectorActive) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-10 px-4 text-center">
@@ -73,7 +74,7 @@ export function InspectorPanel({ selected, override, inspectorActive, onUpdate, 
         </p>
       </div>
 
-      <AppearanceControls override={override} onUpdate={onUpdate} />
+      <AppearanceControls override={override} onUpdate={onUpdate} onUpdateAll={onUpdateAll} />
       <BorderControls override={override} onUpdate={onUpdate} />
       <LabelControls override={override} onUpdate={onUpdate} />
 

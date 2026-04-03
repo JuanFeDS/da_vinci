@@ -27,6 +27,7 @@ interface Props {
   onThemeSelect: (id: string) => void
   onApplyPreset: (overrides: Partial<ChartConfig>) => void
   onInspectorUpdate: (patch: Partial<ElementOverride>) => void
+  onInspectorUpdateAll: (patch: Partial<ElementOverride>) => void
   onInspectorResetElement: () => void
   onClearSelection: () => void
 }
@@ -59,7 +60,7 @@ const TABS: { id: TabId; label: string; Icon: ElementType }[] = [
   { id: 'inspector', label: 'Inspector', Icon: MousePointer2 },
 ]
 
-export function ConfigPanel({ plugin, config, data, themes, activeThemeId, inspectorActive, selected, selectedOverride, onChange, onReset, onThemeSelect, onApplyPreset, onInspectorUpdate, onInspectorResetElement, onClearSelection }: Props) {
+export function ConfigPanel({ plugin, config, data, themes, activeThemeId, inspectorActive, selected, selectedOverride, onChange, onReset, onThemeSelect, onApplyPreset, onInspectorUpdate, onInspectorUpdateAll, onInspectorResetElement, onClearSelection }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('config')
 
   const categoryValues = useMemo(() => {
@@ -142,6 +143,7 @@ export function ConfigPanel({ plugin, config, data, themes, activeThemeId, inspe
             override={selectedOverride}
             inspectorActive={inspectorActive}
             onUpdate={onInspectorUpdate}
+            onUpdateAll={onInspectorUpdateAll}
             onReset={onInspectorResetElement}
             onClearSelection={onClearSelection}
           />
