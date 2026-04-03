@@ -6,6 +6,26 @@ export type ControlType = 'select' | 'color' | 'switch' | 'slider' | 'text'
 
 export type ChartCategory = 'comparison' | 'trend' | 'distribution' | 'correlation' | 'proportion'
 
+export type ColorMode = 'uniform' | 'byCategory' | 'customMap'
+
+export interface ElementOverride {
+  color?: string
+  opacity?: number
+  borderColor?: string
+  borderWidth?: number
+  labelShow?: boolean
+  labelText?: string
+  size?: number
+}
+
+export interface InspectedElement {
+  seriesIndex: number
+  dataIndex: number
+  seriesName: string
+  value: unknown
+  category?: string
+}
+
 export interface ControlOption {
   label: string
   value: string
@@ -40,6 +60,10 @@ export interface ChartConfig {
   labelPosition: string
   seriesType: string
   numericColumns: string[]
+  colorMode: ColorMode
+  colorField: string
+  colorMap: Record<string, string>
+  elementOverrides: Record<string, ElementOverride>
   [key: string]: unknown
 }
 
@@ -53,6 +77,7 @@ export interface ChartPlugin {
   defaultConfig: ChartConfig
   buildOption: (data: DataRow[], config: ChartConfig, theme: Theme) => EChartsOption
   canRender?: (config: ChartConfig) => boolean
+  supportsColorBy?: boolean
 }
 
 export interface ChartState {
