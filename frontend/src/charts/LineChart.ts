@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const LINE_CONFIG_SECTIONS = [
   {
@@ -36,8 +37,20 @@ const LINE_CONFIG_SECTIONS = [
 
 function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChartsOption {
   const categories = data.map((r) => String(r[config.xAxis] ?? ''))
-  const values = data.map((r) => Number(r[config.yAxis] ?? 0))
-  const color = theme.colors[0]
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const baseColor = theme.colors[0]
+  
+  const lineData = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    return {
+      value: Number(r[config.yAxis] ?? 0),
+      name: categories[i],
+      metaIndex: i,
+      itemStyle: ov.color ? { color: ov.color, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 } : undefined,
+      label: ov.labelShow !== undefined ? { show: ov.labelShow as boolean, formatter: ov.labelText as string | undefined } : undefined,
+    }
+  })
+  const color = baseColor
   const showArea = config.showArea as boolean
 
   const areaStyle = showArea
@@ -75,7 +88,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     series: [
       {
         type: 'line',
-        data: values,
+        data: lineData,
         smooth: config.smooth as boolean,
         symbol: (config.showPoints as boolean) ? 'circle' : 'none',
         symbolSize: 6,
@@ -111,7 +124,9 @@ export const LineChart: ChartPlugin = {
     lineWidth: 3,
     showPoints: true,
     showLabels: false,
-    numericColumns: [],
+    numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {},
   },
   buildOption,
+  supportsColorBy: true,
 }
+

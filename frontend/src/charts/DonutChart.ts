@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const DONUT_SECTIONS = [
   {
@@ -33,11 +34,17 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const inner = `${config.innerRadius ?? 40}%`
   const outer = `${config.outerRadius ?? 70}%`
 
-  const pieData = data.map((r, i) => ({
-    name: String(r[config.xAxis] ?? ''),
-    value: Number(r[config.yAxis] ?? 0),
-    itemStyle: { color: theme.colors[i % theme.colors.length] },
-  }))
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const donutData = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    const baseColor = theme.colors[i % theme.colors.length]
+    return {
+      name: String(r[config.xAxis] ?? `Item ${i}`),
+      value: Number(r[config.yAxis] ?? 0),
+      metaIndex: i,
+      itemStyle: { color: ov.color ?? baseColor, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 },
+    }
+  })
 
   return {
     backgroundColor: theme.backgroundColor,
@@ -51,7 +58,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
       radius: [inner, outer],
       center: ['50%', '50%'],
       roseType: (config.roseType as boolean) ? 'radius' : undefined,
-      data: pieData,
+      data: donutData,
       label: config.showLabels
         ? { show: true, color: theme.textColor, fontSize: theme.fontSize, formatter: '{b}\n{d}%' }
         : { show: false },
@@ -65,6 +72,7 @@ export const DonutChart: ChartPlugin = {
   id: 'donut', name: 'Dona', description: 'Proporciones con espacio central',
   icon: 'Disc', category: 'proportion',
   configSections: DONUT_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: true, showGrid: false, smooth: false, barRadius: 0, opacity: 100, labelPosition: '', seriesType: 'pie', innerRadius: 40, outerRadius: 70, roseType: false, showLabels: true, numericColumns: [] },
+  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: true, showGrid: false, smooth: false, barRadius: 0, opacity: 100, labelPosition: '', seriesType: 'pie', innerRadius: 40, outerRadius: 70, roseType: false, showLabels: true, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
   buildOption,
 }
+

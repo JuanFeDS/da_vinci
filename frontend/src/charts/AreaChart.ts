@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const AREA_SECTIONS = [
   {
@@ -32,7 +33,16 @@ const AREA_SECTIONS = [
 
 function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChartsOption {
   const categories = data.map((r) => String(r[config.xAxis] ?? ''))
-  const values = data.map((r) => Number(r[config.yAxis] ?? 0))
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const areaData = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    return {
+      value: Number(r[config.yAxis] ?? 0),
+      name: categories[i],
+      metaIndex: i,
+      itemStyle: ov.color ? { color: ov.color, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 } : undefined,
+    }
+  })
   const color = theme.colors[0]
   const fillOpacity = ((config.fillOpacity as number) ?? 60) / 100
   const hexAlpha = Math.round(fillOpacity * 255).toString(16).padStart(2, '0')
@@ -55,7 +65,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
       axisLine: { lineStyle: { color: 'transparent' } },
     },
     series: [{
-      type: 'line', data: values, smooth: config.smooth as boolean,
+      type: 'line', data: areaData, smooth: config.smooth as boolean,
       symbol: (config.showPoints as boolean) ? 'circle' : 'none', symbolSize: 5,
       lineStyle: { color, width: config.lineWidth as number },
       itemStyle: { color },
@@ -73,6 +83,7 @@ export const AreaChart: ChartPlugin = {
   id: 'area', name: 'Área', description: 'Volumen y tendencia acumulada',
   icon: 'AreaChart', category: 'trend',
   configSections: AREA_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: false, showGrid: true, smooth: true, barRadius: 0, opacity: 100, labelPosition: 'top', seriesType: 'line', fillOpacity: 60, lineWidth: 2, showPoints: false, numericColumns: [] },
+  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: false, showGrid: true, smooth: true, barRadius: 0, opacity: 100, labelPosition: 'top', seriesType: 'line', fillOpacity: 60, lineWidth: 2, showPoints: false, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
   buildOption,
 }
+

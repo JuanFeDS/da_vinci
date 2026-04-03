@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const HISTOGRAM_SECTIONS = [
   {
@@ -54,6 +55,17 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     ? { color: { type: 'linear' as const, x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: theme.colors[1] ?? color }, { offset: 1, color }] }, borderRadius: config.barRadius as number }
     : { color, borderRadius: config.barRadius as number }
 
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const histData = counts.map((c, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    return {
+      value: c,
+      name: labels[i],
+      metaIndex: i,
+      itemStyle: ov.color ? { color: ov.color, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 } : itemStyle,
+    }
+  })
+
   return {
     backgroundColor: theme.backgroundColor,
     title: config.title ? { text: config.title as string, textStyle: { color: '#fff', fontFamily: theme.fontFamily, fontSize: 16 }, left: 'center', top: 12 } : undefined,
@@ -61,7 +73,9 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: labels, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: 30 }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
     yAxis: { type: 'value', name: 'Frecuencia', nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
-    series: [{ type: 'bar', data: counts, barCategoryGap: '2%', itemStyle, label: config.showLabels ? { show: true, color: '#fff', fontSize: 10, position: 'top' as const } : { show: false } }],
+    series: [{
+      type: 'bar',
+      data: histData, barCategoryGap: '2%', itemStyle, label: config.showLabels ? { show: true, color: '#fff', fontSize: 10, position: 'top' as const } : { show: false } }],
   }
 }
 
@@ -69,7 +83,8 @@ export const HistogramChart: ChartPlugin = {
   id: 'histogram', name: 'Histograma', description: 'Distribución de frecuencias numéricas',
   icon: 'BarChartHorizontal', category: 'distribution',
   configSections: HISTOGRAM_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '_auto_', title: '', showLegend: false, showGrid: true, smooth: false, barRadius: 3, opacity: 100, labelPosition: 'top', seriesType: 'bar', bins: 10, useGradient: true, showLabels: false, numericColumns: [] },
+  defaultConfig: { xAxis: '', yAxis: '_auto_', title: '', showLegend: false, showGrid: true, smooth: false, barRadius: 3, opacity: 100, labelPosition: 'top', seriesType: 'bar', bins: 10, useGradient: true, showLabels: false, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
   buildOption,
   canRender: (config) => !!config.xAxis,
 }
+

@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const PIE_CONFIG_SECTIONS = [
   {
@@ -38,11 +39,18 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const isDonut = config.donut as boolean
   const innerRadius = isDonut ? `${config.donutSize as number}%` : '0%'
 
-  const pieData = data.map((r, i) => ({
-    name: String(r[config.xAxis] ?? `Item ${i}`),
-    value: Number(r[config.yAxis] ?? 0),
-    itemStyle: { color: theme.colors[i % theme.colors.length] },
-  }))
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const pieData = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    const baseColor = theme.colors[i % theme.colors.length]
+    return {
+      name: String(r[config.xAxis] ?? `Item ${i}`),
+      value: Number(r[config.yAxis] ?? 0),
+      metaIndex: i,
+      itemStyle: { color: ov.color ?? baseColor, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 },
+      label: ov.labelShow !== undefined ? { show: ov.labelShow as boolean, formatter: ov.labelText as string | undefined } : undefined,
+    }
+  })
 
   const labelFormatter = config.showValues
     ? '{b}: {c} ({d}%)'
@@ -103,7 +111,8 @@ export const PieChart: ChartPlugin = {
     borderRadius: 4,
     showLabels: true,
     showValues: false,
-    numericColumns: [],
+    numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {},
   },
   buildOption,
 }
+

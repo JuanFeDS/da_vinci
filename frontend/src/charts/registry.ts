@@ -31,3 +31,4 @@ export const CHART_CATEGORIES: { id: ChartCategory; label: string }[] = [
 export function getChartById(id: string): ChartPlugin | undefined {
   return CHART_REGISTRY.find((c) => c.id === id)
 }
+

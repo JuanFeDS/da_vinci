@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const HEATMAP_SECTIONS = [
   {
@@ -26,13 +27,17 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const yVals = [...new Set(data.map((r) => String(r[config.yAxis] ?? '')))]
   const valueCol = (config.valueAxis as string) || (config.numericColumns as string[])[0] || ''
 
-  const heatData: [number, number, number][] = data.map((r) => {
-    const xi = xVals.indexOf(String(r[config.xAxis] ?? ''))
-    const yi = yVals.indexOf(String(r[config.yAxis] ?? ''))
-    return [xi, yi, Number(r[valueCol] ?? 0)]
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const heatData = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    return {
+      value: [xVals.indexOf(String(r[config.xAxis] ?? '')), yVals.indexOf(String(r[config.yAxis] ?? '')), Number(r[valueCol] ?? 0)],
+      metaIndex: i,
+      itemStyle: ov.color ? { color: ov.color, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 } : undefined,
+    }
   })
 
-  const values = heatData.map((d) => d[2])
+  const values = heatData.map((d) => d.value[2])
   const minVal = Math.min(...values)
   const maxVal = Math.max(...values)
 
@@ -57,6 +62,7 @@ export const HeatmapChart: ChartPlugin = {
   id: 'heatmap', name: 'Mapa de Calor', description: 'Intensidad de valores en matriz 2D',
   icon: 'LayoutGrid', category: 'correlation',
   configSections: HEATMAP_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '', valueAxis: '', title: '', showLegend: false, showGrid: false, smooth: false, barRadius: 0, opacity: 100, labelPosition: '', seriesType: 'heatmap', showLabels: true, numericColumns: [] },
+  defaultConfig: { xAxis: '', yAxis: '', valueAxis: '', title: '', showLegend: false, showGrid: false, smooth: false, barRadius: 0, opacity: 100, labelPosition: '', seriesType: 'heatmap', showLabels: true, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
   buildOption,
 }
+

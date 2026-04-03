@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const TREEMAP_SECTIONS = [
   {
@@ -28,11 +29,17 @@ const TREEMAP_SECTIONS = [
 ]
 
 function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChartsOption {
-  const treemapData = data.map((r, i) => ({
-    name: String(r[config.xAxis] ?? `Item ${i + 1}`),
-    value: Number(r[config.yAxis] ?? 0),
-    itemStyle: { color: theme.colors[i % theme.colors.length], borderColor: theme.backgroundColor, borderWidth: (config.borderWidth as number) ?? 2 },
-  }))
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const treemapData = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    const baseColor = theme.colors[i % theme.colors.length]
+    return {
+      name: String(r[config.xAxis] ?? `Item ${i}`),
+      value: Number(r[config.yAxis] ?? 0),
+      metaIndex: i,
+      itemStyle: { color: ov.color ?? baseColor, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1, borderColor: theme.backgroundColor, borderWidth: (config.borderWidth as number) ?? 2 },
+    }
+  })
 
   return {
     backgroundColor: theme.backgroundColor,
@@ -67,6 +74,7 @@ export const TreemapChart: ChartPlugin = {
   id: 'treemap', name: 'Mapa de Árbol', description: 'Proporciones jerárquicas por área',
   icon: 'SquareStack', category: 'proportion',
   configSections: TREEMAP_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: false, showGrid: false, smooth: false, barRadius: 0, opacity: 100, labelPosition: '', seriesType: 'treemap', borderWidth: 2, showBreadcrumb: true, showLabels: true, numericColumns: [] },
+  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: false, showGrid: false, smooth: false, barRadius: 0, opacity: 100, labelPosition: '', seriesType: 'treemap', borderWidth: 2, showBreadcrumb: true, showLabels: true, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
   buildOption,
 }
+

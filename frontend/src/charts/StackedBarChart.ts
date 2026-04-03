@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const STACKED_SECTIONS = [
   {
@@ -32,13 +33,23 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const categories = data.map((r) => String(r[config.xAxis] ?? ''))
   const numCols = (config.numericColumns as string[]).filter((c) => c !== config.xAxis).slice(0, 6)
   const opacity = (config.opacity as number) / 100
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
 
-  const series = numCols.map((col, i) => ({
-    type: 'bar' as const,
-    name: col,
-    stack: 'total',
-    data: data.map((r) => Number(r[col] ?? 0)),
-    itemStyle: { color: theme.colors[i % theme.colors.length], opacity },
+  const series = numCols.map((col, seriesIdx) => ({
+    name: col, type: 'bar' as const, stack: 'total',
+    data: data.map((r, dataIdx) => {
+      const ov = getOverrideForItem(overrides, seriesIdx, dataIdx)
+      const baseColor = theme.colors[seriesIdx % theme.colors.length]
+      const finalColor = ov.color ?? baseColor
+      const finalOpacity = ov.opacity !== undefined ? (ov.opacity as number) / 100 : opacity
+      return {
+        value: Number(r[col] ?? 0),
+        name: categories[dataIdx],
+        metaIndex: dataIdx,
+        itemStyle: { color: finalColor, opacity: finalOpacity, borderRadius: config.barRadius as number },
+        label: ov.labelShow !== undefined ? { show: ov.labelShow as boolean, formatter: ov.labelText as string | undefined, color: '#fff', fontSize: 10 } : undefined,
+      }
+    }),
     label: config.showLabels ? { show: true, color: '#fff', fontSize: 10 } : { show: false },
     emphasis: { focus: 'series' as const },
   }))
@@ -59,7 +70,8 @@ export const StackedBarChart: ChartPlugin = {
   id: 'stacked-bar', name: 'Barras Apiladas', description: 'Composición proporcional por categoría',
   icon: 'Layers', category: 'comparison',
   configSections: STACKED_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: true, showGrid: true, smooth: false, barRadius: 4, opacity: 92, labelPosition: 'top', seriesType: 'bar', showLabels: false, numericColumns: [] },
+  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: true, showGrid: true, smooth: false, barRadius: 4, opacity: 92, labelPosition: 'top', seriesType: 'bar', showLabels: false, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
   buildOption,
   canRender: (config) => !!config.xAxis,
 }
+

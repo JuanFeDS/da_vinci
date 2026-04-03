@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { getOverrideForItem } from './utils/colorResolver'
 
 const BUBBLE_SECTIONS = [
   {
@@ -36,11 +37,17 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const maxBubble = (config.maxBubbleSize as number) ?? 60
   const opacity = (config.opacity as number) / 100
 
-  const points = data.map((r, i) => ({
-    value: [Number(r[config.xAxis] ?? 0), Number(r[config.yAxis] ?? 0), rawSizes[i]],
-    symbolSize: maxSize > 0 ? (rawSizes[i] / maxSize) * maxBubble + 8 : 16,
-    itemStyle: { color: theme.colors[i % theme.colors.length], opacity },
-  }))
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const points = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    const baseColor = theme.colors[i % theme.colors.length]
+    return {
+      value: [Number(r[config.xAxis] ?? 0), Number(r[config.yAxis] ?? 0), Number(r[sizeCol] ?? 10)],
+      metaIndex: i,
+      symbolSize: (ov.size as number | undefined) ?? (maxSize > 0 ? (rawSizes[i] / maxSize) * maxBubble + 8 : 16),
+      itemStyle: { color: ov.color ?? baseColor, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : opacity },
+    }
+  })
 
   return {
     backgroundColor: theme.backgroundColor,
@@ -63,6 +70,8 @@ export const BubbleChart: ChartPlugin = {
   id: 'bubble', name: 'Burbujas', description: 'Comparar 3 variables con tamaño',
   icon: 'CircleDot', category: 'correlation',
   configSections: BUBBLE_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '', sizeAxis: '', title: '', showLegend: false, showGrid: true, smooth: false, barRadius: 0, opacity: 70, labelPosition: '', seriesType: 'scatter', maxBubbleSize: 60, showLabels: false, numericColumns: [] },
+  defaultConfig: { xAxis: '', yAxis: '', sizeAxis: '', title: '', showLegend: false, showGrid: true, smooth: false, barRadius: 0, opacity: 70, labelPosition: '', seriesType: 'scatter', maxBubbleSize: 60, showLabels: false, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
   buildOption,
+  supportsColorBy: true,
 }
+

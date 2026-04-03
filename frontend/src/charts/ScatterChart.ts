@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { resolveItemColor, getOverrideForItem } from './utils/colorResolver'
 
 const SCATTER_CONFIG_SECTIONS = [
   {
@@ -33,13 +34,31 @@ const SCATTER_CONFIG_SECTIONS = [
 ]
 
 function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChartsOption {
-  const scatterData = data.map((r) => [
-    Number(r[config.xAxis] ?? 0),
-    Number(r[config.yAxis] ?? 0),
-  ])
-  const color = theme.colors[0]
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const baseColor = theme.colors[0]
   const opacity = (config.opacity as number) / 100
   const showGlow = config.showGlow as boolean
+
+  const scatterData = data.map((r, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    const pointColor = resolveItemColor(i, r, config, theme)
+    const finalColor = ov.color ?? pointColor
+    const finalOpacity = ov.opacity !== undefined ? (ov.opacity as number) / 100 : opacity
+    const finalSize = (ov.size as number | undefined) ?? (config.pointSize as number)
+    return {
+      value: [Number(r[config.xAxis] ?? 0), Number(r[config.yAxis] ?? 0)],
+      metaIndex: i,
+      symbolSize: finalSize,
+      itemStyle: {
+        color: finalColor,
+        opacity: finalOpacity,
+        borderColor: ov.borderColor,
+        borderWidth: ov.borderWidth ?? 0,
+        shadowBlur: showGlow && !ov.color ? 16 : 0,
+        shadowColor: showGlow && !ov.color ? `${finalColor}88` : 'transparent',
+      },
+    }
+  })
 
   return {
     backgroundColor: theme.backgroundColor,
@@ -56,35 +75,14 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     },
     legend: config.showLegend ? { textStyle: { color: theme.textColor }, bottom: 0 } : undefined,
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
-    xAxis: {
-      type: 'value',
-      name: config.xAxis,
-      nameTextStyle: { color: theme.textColor },
-      axisLabel: { color: theme.textColor, fontSize: theme.fontSize },
-      splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } },
-      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
-    },
-    yAxis: {
-      type: 'value',
-      name: config.yAxis,
-      nameTextStyle: { color: theme.textColor },
-      axisLabel: { color: theme.textColor, fontSize: theme.fontSize },
-      splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } },
-      axisLine: { lineStyle: { color: 'transparent' } },
-    },
+    xAxis: { type: 'value', name: config.xAxis, nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } } },
+    yAxis: { type: 'value', name: config.yAxis, nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
     series: [
       {
         type: 'scatter',
         data: scatterData,
-        symbolSize: config.pointSize as number,
-        itemStyle: {
-          color,
-          opacity,
-          shadowBlur: showGlow ? 16 : 0,
-          shadowColor: showGlow ? `${color}88` : 'transparent',
-        },
         emphasis: {
-          itemStyle: { opacity: 1, shadowBlur: 24, shadowColor: `${color}aa` },
+          itemStyle: { opacity: 1, shadowBlur: 24, shadowColor: `${baseColor}aa` },
           scale: 1.3,
         },
       },
@@ -100,19 +98,12 @@ export const ScatterChart: ChartPlugin = {
   category: 'correlation',
   configSections: SCATTER_CONFIG_SECTIONS,
   defaultConfig: {
-    xAxis: '',
-    yAxis: '',
-    title: '',
-    showLegend: false,
-    showGrid: true,
-    smooth: false,
-    barRadius: 0,
-    opacity: 80,
-    labelPosition: 'top',
-    seriesType: 'scatter',
-    pointSize: 10,
-    showGlow: true,
-    numericColumns: [],
+    xAxis: '', yAxis: '', title: '', showLegend: false, showGrid: true, smooth: false,
+    barRadius: 0, opacity: 80, labelPosition: 'top', seriesType: 'scatter',
+    pointSize: 10, showGlow: true,
+    numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {},
   },
   buildOption,
+  supportsColorBy: true,
 }
+

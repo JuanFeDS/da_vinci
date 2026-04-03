@@ -2,6 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
+import { resolveItemColor, getOverrideForItem } from './utils/colorResolver'
 
 const BAR_CONFIG_SECTIONS = [
   {
@@ -36,30 +37,40 @@ const BAR_CONFIG_SECTIONS = [
 
 function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChartsOption {
   const categories = data.map((r) => String(r[config.xAxis] ?? ''))
-  const values = data.map((r) => Number(r[config.yAxis] ?? 0))
-  const color = theme.colors[0]
+  const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
   const isHorizontal = config.horizontal as boolean
   const useGradient = config.useGradient as boolean
   const opacity = (config.opacity as number) / 100
+  const colorMode = config.colorMode as string
 
-  const itemStyle = useGradient
-    ? {
-        color: {
-          type: 'linear' as const,
-          x: isHorizontal ? 0 : 0,
-          y: isHorizontal ? 0 : 1,
-          x2: isHorizontal ? 1 : 0,
-          y2: isHorizontal ? 0 : 0,
-          colorStops: [
-            { offset: 0, color: theme.colors[1] ?? color },
-            { offset: 1, color },
-          ],
-        },
-        opacity,
-        borderRadius: config.barRadius as number,
-      }
-    : { color, opacity, borderRadius: config.barRadius as number }
+  const seriesData = data.map((row, i) => {
+    const ov = getOverrideForItem(overrides, 0, i)
+    const baseColor = colorMode === 'uniform' ? theme.colors[0] : resolveItemColor(i, row, config, theme)
+    const finalColor = (ov.color as string | undefined) ?? baseColor
+    const finalOpacity = ov.opacity !== undefined ? (ov.opacity as number) / 100 : opacity
+    const finalBorder = ov.borderColor ? { borderColor: ov.borderColor, borderWidth: (ov.borderWidth as number | undefined) ?? 1 } : {}
+    const itemStyle = useGradient && colorMode === 'uniform' && !ov.color
+      ? {
+          color: { type: 'linear' as const, x: 0, y: isHorizontal ? 0 : 1, x2: isHorizontal ? 1 : 0, y2: 0,
+            colorStops: [{ offset: 0, color: theme.colors[1] ?? finalColor }, { offset: 1, color: finalColor }] },
+          opacity: finalOpacity, borderRadius: config.barRadius as number, ...finalBorder,
+        }
+      : { color: finalColor, opacity: finalOpacity, borderRadius: config.barRadius as number, ...finalBorder }
 
+    const labelOverride = ov.labelShow !== undefined
+      ? { show: ov.labelShow as boolean, formatter: (ov.labelText as string | undefined) ?? undefined, color: '#fff', fontSize: 11 }
+      : undefined
+
+    return {
+      value: Number(row[config.yAxis] ?? 0),
+      name: categories[i],
+      metaIndex: i,
+      itemStyle,
+      label: labelOverride,
+    }
+  })
+
+  const baseColor = theme.colors[0]
   return {
     backgroundColor: theme.backgroundColor,
     title: config.title ? { text: config.title, textStyle: { color: '#fff', fontFamily: theme.fontFamily, fontSize: 16 }, left: 'center', top: 12 } : undefined,
@@ -72,15 +83,12 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     yAxis: isHorizontal
       ? { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, axisLine: { lineStyle: { color: 'transparent' } } }
       : { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
-    series: [
-      {
-        type: 'bar',
-        data: values,
-        itemStyle,
-        label: config.showLabels ? { show: true, color: '#fff', fontSize: 11 } : { show: false },
-        emphasis: { itemStyle: { opacity: 1, shadowBlur: 16, shadowColor: `${color}66` } },
-      },
-    ],
+    series: [{
+      type: 'bar',
+      data: seriesData,
+      label: config.showLabels ? { show: true, color: '#fff', fontSize: 11 } : { show: false },
+      emphasis: { itemStyle: { opacity: 1, shadowBlur: 16, shadowColor: `${baseColor}66` } },
+    }],
   }
 }
 
@@ -105,7 +113,9 @@ export const BarChart: ChartPlugin = {
     useGradient: true,
     horizontal: false,
     showLabels: false,
-    numericColumns: [],
+    numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {},
   },
   buildOption,
+  supportsColorBy: true,
 }
+
