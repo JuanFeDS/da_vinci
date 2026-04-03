@@ -8,7 +8,7 @@ interface Props {
   onDataLoaded: (data: ProcessedData) => void
 }
 
-const API_URL = 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export function DataUploader({ onDataLoaded }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -39,7 +39,7 @@ export function DataUploader({ onDataLoaded }: Props) {
   }, [onDataLoaded])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { 'text/csv': ['.csv'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel': ['.xls'] },
+    accept: { 'text/csv': ['.csv'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
     maxFiles: 1,
     onDrop: (files) => { if (files[0]) uploadFile(files[0]) },
   })
@@ -93,7 +93,7 @@ export function DataUploader({ onDataLoaded }: Props) {
                 <p className="text-sm font-medium text-white/80">
                   {isDragActive ? 'Suelta el archivo aquí' : 'Arrastra tu archivo o haz clic'}
                 </p>
-                <p className="text-xs text-white/30 mt-1">CSV, XLSX — máx. 50MB</p>
+                <p className="text-xs text-white/30 mt-1">CSV · XLSX — máx. 50MB</p>
               </>
             )}
           </div>

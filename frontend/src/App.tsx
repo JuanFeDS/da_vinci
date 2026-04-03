@@ -1,22 +1,35 @@
+import { useEffect } from 'react'
 import { Sparkles, Database } from 'lucide-react'
 import { useChartConfig } from '@/hooks/useChartConfig'
 import { useTheme } from '@/hooks/useTheme'
+import { useInspector } from '@/hooks/useInspector'
 import { DataUploader } from '@/components/DataUploader'
 import { ChartSelector } from '@/components/ChartSelector'
 import { ChartViewer } from '@/components/ChartViewer'
 import { ConfigPanel } from '@/components/ConfigPanel'
 import type { ProcessedData } from '@/types/data.types'
-import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
+import type { ChartPlugin, ChartConfig, InspectedElement } from '@/types/chart.types'
 
 function App() {
   const { plugin, config, data, selectPlugin, updateConfig, updateData, resetConfig } = useChartConfig()
   const { themes, activeTheme, activeId, selectTheme } = useTheme()
+  const inspector = useInspector()
 
   const handleDataLoaded = (d: ProcessedData) => updateData(d)
   const handlePluginSelect = (p: ChartPlugin) => selectPlugin(p, data)
   const handleApplyPreset = (overrides: Partial<ChartConfig>) => {
     Object.entries(overrides).forEach(([k, v]) => updateConfig(k, v))
   }
+  const handleElementClick = (el: InspectedElement) => inspector.selectElement(el)
+  const selectedOverride = inspector.selected ? inspector.getOverride(inspector.selected) : {}
+
+  useEffect(() => {
+    updateConfig('elementOverrides', inspector.overrides)
+  }, [inspector.overrides])
+
+  useEffect(() => {
+    inspector.resetOverrides()
+  }, [plugin?.id, data?.dataset_info.filename])
 
   const showWorkspace = plugin !== null && data !== null
 
@@ -60,6 +73,9 @@ function App() {
               config={config}
               data={data.data}
               theme={activeTheme}
+              inspectorActive={inspector.inspectorActive}
+              onToggleInspector={inspector.toggleMode}
+              onElementClick={handleElementClick}
               onReset={resetConfig}
             />
           ) : (
@@ -89,10 +105,16 @@ function App() {
               data={data}
               themes={themes}
               activeThemeId={activeId}
+              inspectorActive={inspector.inspectorActive}
+              selected={inspector.selected}
+              selectedOverride={selectedOverride}
               onChange={updateConfig}
               onReset={resetConfig}
               onThemeSelect={selectTheme}
               onApplyPreset={handleApplyPreset}
+              onInspectorUpdate={(patch) => inspector.selected && inspector.updateOverride(inspector.selected, patch)}
+              onInspectorResetElement={() => inspector.selected && inspector.removeOverride(inspector.selected)}
+              onClearSelection={inspector.clearSelection}
             />
           </aside>
         )}
