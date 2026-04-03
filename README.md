@@ -1,102 +1,190 @@
-# DaVinci
+# 🎨 DaVinci
 
-Aplicación de visualización de datos dinámica disponible como **app web** y **app de escritorio** (Tauri). Este repo contiene backend (FastAPI) y frontend (React + Vite + Tailwind + ECharts) en un solo monorepo.
+Aplicación interactiva de visualización de datos que permite explorar datasets CSV/XLSX a través de más de 12 tipos de gráficos configurables, con personalización por temas, colores y elementos individuales. Disponible como **app web** y **app de escritorio nativa** (Tauri).
 
-## Estructura
+## ✨ Qué hace
+
+El flujo principal es simple:
+
+1. 📂 **Sube un archivo** CSV o XLSX (hasta 50 MB)
+2. 🔍 El backend infiere automáticamente los tipos de columna (numérico, categórico, datetime)
+3. 📊 **Elige un tipo de gráfico** — el sistema asigna ejes automáticamente según los tipos de dato
+4. 🎨 **Personaliza** apariencia, colores y elementos individuales
+5. 💾 **Exporta** como PNG o JSON
+
+## 📊 Tipos de gráficos
+
+| Categoría | Gráficos disponibles |
+|-----------|----------------------|
+| 📊 Comparación | Bar, Grouped Bar, Stacked Bar |
+| 📈 Tendencia | Line, Area |
+| 📉 Distribución | Histogram |
+| 🔵 Correlación | Scatter, Bubble, Heatmap |
+| 🥧 Proporción | Pie, Donut, Treemap |
+
+## ⚡ Funcionalidades principales
+
+- 📂 **Carga de datos**: Drag-and-drop de CSV/XLSX; detección automática de tipos de columna
+- 🎨 **Temas visuales**: 6 paletas predefinidas — Cosmic, Aurora, Ember, Forest, Neon, Pastel
+- 🖌️ **Modos de color**: Uniforme (color del tema), Por categoría (mapeo automático), Personalizado (color por valor)
+- 🔎 **Inspector de elementos**: Click en cualquier elemento del gráfico para sobrescribir su color, opacidad, borde o etiqueta
+- ⚙️ **Panel de configuración dinámico**: Controles de título, ejes, leyenda, grilla, radio, gradientes, etc. — específicos por tipo de gráfico
+- 💾 **Exportación**: PNG en alta resolución o JSON con la configuración completa
+
+## 🏗️ Arquitectura
 
 ```
-.
-├── backend/              # API FastAPI + Poetry
-├── frontend/
-│   ├── src/              # Código fuente React (compartido web + desktop)
-│   ├── src-tauri/        # Configuración y código nativo Tauri
-│   ├── .env.example      # Plantilla de variables de entorno
-│   └── ...
-├── sample_data.csv       # Dataset de prueba
-└── README.md
+da_vinci/
+├── backend/          # 🐍 API FastAPI (Python)
+│   └── app/
+│       ├── main.py               # App setup, CORS, rutas
+│       ├── api/
+│       │   ├── routes.py         # POST /api/upload, GET /api/health
+│       │   └── data_processor.py # Inferencia de tipos, generación de preview
+│       ├── models/
+│       │   └── schemas.py        # Modelos Pydantic (ColumnInfo, DatasetInfo)
+│       └── utils/
+│           └── file_handler.py   # Validación y parseo CSV/XLSX
+│
+└── frontend/         # ⚛️ React + Vite + TypeScript
+    └── src/
+        ├── App.tsx               # Layout 3 paneles: sidebar | viewer | config
+        ├── charts/               # Plugin de gráficos (12 tipos + registry)
+        │   ├── registry.ts       # Registro y descubrimiento de charts
+        │   └── *.ts              # Implementaciones individuales (ECharts config builders)
+        ├── components/
+        │   ├── DataUploader      # Drag-drop con react-dropzone
+        │   ├── ChartViewer       # Renderizado ECharts + botones de exportación
+        │   ├── ChartSelector     # Grilla de selección de tipo de gráfico
+        │   ├── ConfigPanel       # Formulario dinámico de configuración
+        │   ├── InspectorPanel    # Override de elementos individuales
+        │   ├── ThemeManager      # Selector de temas
+        │   └── ColorEditor       # Mapeo de colores por valor
+        ├── hooks/
+        │   ├── useChartConfig    # Estado del gráfico y su configuración
+        │   ├── useTheme          # Tema activo y switching
+        │   ├── useInspector      # Selección de elementos y overrides
+        │   └── useColorByField   # Coloreado por categoría
+        ├── types/
+        │   ├── chart.types.ts    # ChartPlugin, ChartConfig, ColorMode
+        │   ├── data.types.ts     # ProcessedData, DataRow, ColumnInfo
+        │   └── theme.types.ts    # Theme interface + 6 presets
+        └── utils/
+            ├── chartExport       # Export PNG vía canvas
+            ├── configExport      # Serialización JSON
+            └── colorResolver     # Resolución tema + overrides de color
 ```
 
-## Requisitos previos
+### 🔄 Cómo se conectan las partes
+
+```
+👤 Usuario sube archivo
+       ↓
+🐍 Backend (FastAPI) procesa y devuelve:
+  - Lista de columnas con tipos inferidos
+  - Preview de los datos (primeras N filas)
+       ↓
+⚛️ Frontend recibe los datos en useChartConfig
+  → ChartSelector muestra los 12 tipos disponibles
+  → Al elegir un chart, registry.ts asigna ejes automáticamente
+  → ConfigPanel renderiza controles dinámicos según el chart elegido
+  → ChartViewer pasa la config al chart plugin correspondiente
+  → El plugin genera un ECharts option object
+  → ECharts renderiza el gráfico
+       ↓
+🔎 Inspector (useInspector) escucha clicks en elementos
+  → Permite sobrescribir estilo por elemento individual
+  → Los overrides se aplican encima del config base
+```
+
+### 🎨 Sistema de personalización en 3 capas
+
+```
+🎨 Tema (paleta base)
+  ↓ + ⚙️ Config (título, ejes, leyenda, gradientes, etc.)
+  ↓ + 🔎 Overrides por elemento (color, opacidad, borde, label)
+  = 📊 ECharts option final
+```
+
+### 🧩 Arquitectura de plugins de gráficos
+
+Cada tipo de gráfico implementa la interfaz `ChartPlugin`:
+
+```typescript
+interface ChartPlugin {
+  id: string
+  label: string
+  category: ChartCategory
+  configSections: ConfigSection[]   // define los controles del ConfigPanel
+  defaultConfig: ChartConfig        // valores iniciales
+  buildOption(data, config, theme): EChartsOption  // genera la config de ECharts
+}
+```
+
+El `registry.ts` centraliza el registro y permite descubrir charts por categoría o tipo de dato.
+
+## 🛠️ Stack tecnológico
+
+**⚛️ Frontend**
+- React 19 + TypeScript
+- Vite 8 como build tool
+- Tailwind CSS 3 para estilos
+- ECharts 6 (via echarts-for-react) para renderizado de gráficos
+- Tauri 2 para el wrapper de desktop (Rust + WebView2)
+
+**🐍 Backend**
+- FastAPI + Uvicorn
+- pandas + numpy para procesamiento de datos
+- openpyxl para soporte XLSX
+- Pydantic 2 para validación de esquemas
+- Poetry para gestión de dependencias
+
+## 🚀 Cómo ejecutar
+
+### 📋 Requisitos
 
 - Python 3.10+ y [Poetry](https://python-poetry.org/docs/#installation)
 - Node.js 18+
-- **Solo para app desktop:** [Rust](https://rustup.rs/) (se instala con `winget install Rustlang.Rustup`)
+- 🦀 Rust (solo para app desktop): `winget install Rustlang.Rustup`
 
-## Backend (FastAPI)
+### 🐍 Backend
 
 ```bash
 cd backend
 poetry install
 poetry run uvicorn app.main:app --reload --port 8000
+# 📖 Swagger UI en http://localhost:8000/docs
 ```
 
-Endpoints principales:
-- `POST /api/upload` → Procesa CSV/XLSX y devuelve metadatos + datos limpios
-- `GET /api/health` → Health check
-- Swagger UI en `http://localhost:8000/docs`
-
-## Frontend Web
+### 🌐 Frontend web
 
 ```bash
 cd frontend
-cp .env.example .env   # Configurar URL del backend
+cp .env.example .env   # Ajustar VITE_API_URL=http://localhost:8000
 npm install
 npm run dev            # http://localhost:5173
 ```
 
-## App de Escritorio (Tauri)
+### 🖥️ App de escritorio (Tauri)
 
 ```bash
 cd frontend
-cp .env.example .env   # Configurar URL del backend
+cp .env.example .env
 npm install
-npm run tauri:dev      # Abre ventana nativa con hot reload
+npm run tauri:dev      # Ventana nativa con hot reload
+npm run tauri:build    # Genera instaladores en src-tauri/target/release/bundle/
 ```
 
-### Build del instalador
+## 📜 Scripts de referencia
 
-```bash
-cd frontend
-npm run tauri:build
-# Instaladores generados en: src-tauri/target/release/bundle/
-#   Windows: bundle/msi/DaVinci_1.0.0_x64_es-MX.msi
-#            bundle/nsis/DaVinci_1.0.0_x64-setup.exe
-```
+| Directorio | Comando | Descripción |
+|------------|---------|-------------|
+| `backend` | `poetry run uvicorn app.main:app --reload` | 🐍 API en modo desarrollo |
+| `frontend` | `npm run dev` | 🌐 App web en localhost:5173 |
+| `frontend` | `npm run build` | 📦 Build SPA para producción |
+| `frontend` | `npm run tauri:dev` | 🖥️ App desktop con hot reload |
+| `frontend` | `npm run tauri:build` | 📦 Instaladores MSI/NSIS |
 
-El instalador resultante (~5 MB) puede distribuirse a otros equipos.
+## 🗂️ Datos de prueba
 
-## Variables de entorno
-
-Copia `.env.example` como `.env` y ajusta la URL del backend:
-
-```env
-# Desarrollo local
-VITE_API_URL=http://localhost:8000
-
-# Producción
-VITE_API_URL=https://tu-backend.com
-```
-
-## Scripts útiles
-
-| Ubicación  | Comando                                     | Descripción                        |
-|------------|---------------------------------------------|------------------------------------|
-| `backend`  | `poetry run uvicorn app.main:app --reload`  | Inicia API FastAPI                 |
-| `frontend` | `npm run dev`                               | Inicia versión web (localhost:5173)|
-| `frontend` | `npm run build`                             | Compila SPA para deploy web        |
-| `frontend` | `npm run tauri:dev`                         | App desktop con hot reload         |
-| `frontend` | `npm run tauri:build`                       | Genera instaladores de escritorio  |
-
-## Flujo básico
-
-1. Ejecuta backend y frontend (web o desktop)
-2. Sube un archivo CSV/XLSX (usa `sample_data.csv` para pruebas)
-3. Selecciona un tipo de gráfico
-4. Personaliza estilos, temas y usa el inspector de elementos
-5. Exporta como PNG o JSON
-
-## Notas
-
-- El mismo código React sirve tanto para web como para desktop.
-- La app desktop requiere conexión a internet para comunicarse con el backend.
-- Tauri usa WebView2 (ya incluido en Windows 11 / se instala automáticamente en Windows 10).
+El archivo `sample_data.csv` incluye un dataset pequeño (10 filas × 5 columnas) para probar la app sin necesidad de datos propios.
