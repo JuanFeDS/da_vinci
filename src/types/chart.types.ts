@@ -78,6 +78,7 @@ export interface ChartPlugin {
   buildOption: (data: DataRow[], config: ChartConfig, theme: Theme) => EChartsOption
   canRender?: (config: ChartConfig) => boolean
   supportsColorBy?: boolean
+  supportsDrag?: boolean
 }
 
 export interface ChartState {

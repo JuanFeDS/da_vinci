@@ -31,19 +31,47 @@ const BAR_CONFIG_SECTIONS = [
       { key: 'showLegend', label: 'Mostrar leyenda', type: 'switch' as const, defaultValue: false },
       { key: 'showGrid', label: 'Mostrar cuadrícula', type: 'switch' as const, defaultValue: true },
       { key: 'showLabels', label: 'Mostrar etiquetas', type: 'switch' as const, defaultValue: false },
+      { key: 'tickRotation', label: 'Rotación de ticks', type: 'slider' as const, defaultValue: 0, min: -90, max: 90, step: 15 },
     ],
   },
 ]
 
 function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChartsOption {
-  const categories = data.map((r) => String(r[config.xAxis] ?? ''))
+  // 1. Apply mergedGroups iteratively so nested merges work correctly.
+  //    Each group is applied against the current workingData (which may already
+  //    contain synthetic rows from previous groups in this loop).
+  const mergedGroups = (config.mergedGroups as { label: string; members: string[] }[] | undefined) ?? []
+  let workingData = [...data]
+  for (const group of mergedGroups) {
+    const memberSet = new Set(group.members)
+    const memberRows = workingData.filter((r) => memberSet.has(String(r[config.xAxis] ?? '')))
+    if (memberRows.length === 0) continue
+    const sum = memberRows.reduce((acc, r) => acc + Number(r[config.yAxis] ?? 0), 0)
+    workingData = [
+      ...workingData.filter((r) => !memberSet.has(String(r[config.xAxis] ?? ''))),
+      { [config.xAxis]: group.label, [config.yAxis]: sum },
+    ]
+  }
+
+  // 2. Apply categoryOrder: sort working data by desired display order
+  const categoryOrder = config.categoryOrder as string[] | undefined
+  if (categoryOrder && categoryOrder.length > 0) {
+    workingData = [...workingData].sort((a, b) => {
+      const ai = categoryOrder.indexOf(String(a[config.xAxis] ?? ''))
+      const bi = categoryOrder.indexOf(String(b[config.xAxis] ?? ''))
+      return (ai === -1 ? 99999 : ai) - (bi === -1 ? 99999 : bi)
+    })
+  }
+
+  const categories = workingData.map((r) => String(r[config.xAxis] ?? ''))
   const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
   const isHorizontal = config.horizontal as boolean
   const useGradient = config.useGradient as boolean
   const opacity = (config.opacity as number) / 100
   const colorMode = config.colorMode as string
+  const tickRotation = (config.tickRotation as number) ?? 0
 
-  const seriesData = data.map((row, i) => {
+  const seriesData = workingData.map((row, i) => {
     const ov = getOverrideForItem(overrides, 0, i)
     const baseColor = colorMode === 'uniform' ? theme.colors[0] : resolveItemColor(i, row, config, theme)
     const finalColor = (ov.color as string | undefined) ?? baseColor
@@ -79,9 +107,9 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
     xAxis: isHorizontal
       ? { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } }
-      : { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: categories.length > 8 ? 30 : 0 }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
+      : { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
     yAxis: isHorizontal
-      ? { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, axisLine: { lineStyle: { color: 'transparent' } } }
+      ? { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation }, axisLine: { lineStyle: { color: 'transparent' } } }
       : { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
     series: [{
       type: 'bar',
@@ -113,9 +141,10 @@ export const BarChart: ChartPlugin = {
     useGradient: true,
     horizontal: false,
     showLabels: false,
-    numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {},
+    numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {}, tickRotation: 0,
   },
   buildOption,
   supportsColorBy: true,
+  supportsDrag: true,
 }
 

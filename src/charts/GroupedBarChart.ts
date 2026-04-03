@@ -25,6 +25,7 @@ const GROUPED_SECTIONS = [
       { key: 'showLegend', label: 'Mostrar leyenda', type: 'switch' as const, defaultValue: true },
       { key: 'showGrid', label: 'Mostrar cuadrícula', type: 'switch' as const, defaultValue: true },
       { key: 'showLabels', label: 'Mostrar etiquetas', type: 'switch' as const, defaultValue: false },
+      { key: 'tickRotation', label: 'Rotación de ticks', type: 'slider' as const, defaultValue: 0, min: -90, max: 90, step: 15 },
     ],
   },
 ]
@@ -34,6 +35,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const numCols = (config.numericColumns as string[]) || []
   const opacity = (config.opacity as number) / 100
   const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
+  const tickRotation = (config.tickRotation as number) ?? 0
 
   const series = numCols.map((col, seriesIdx) => ({
     type: 'bar' as const,
@@ -61,7 +63,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#fff' } },
     legend: { textStyle: { color: theme.textColor }, bottom: 0 },
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 48, containLabel: true },
-    xAxis: { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
+    xAxis: { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
     yAxis: { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
     series,
   }
@@ -71,7 +73,7 @@ export const GroupedBarChart: ChartPlugin = {
   id: 'grouped-bar', name: 'Barras Agrupadas', description: 'Comparar múltiples series por categoría',
   icon: 'BarChart3', category: 'comparison',
   configSections: GROUPED_SECTIONS,
-  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: true, showGrid: true, smooth: false, barRadius: 4, opacity: 90, labelPosition: 'top', seriesType: 'bar', showLabels: false, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {} },
+  defaultConfig: { xAxis: '', yAxis: '', title: '', showLegend: true, showGrid: true, smooth: false, barRadius: 4, opacity: 90, labelPosition: 'top', seriesType: 'bar', showLabels: false, numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {}, tickRotation: 0 },
   buildOption,
   canRender: (config) => !!config.xAxis,
 }
