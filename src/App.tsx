@@ -36,6 +36,11 @@ function App() {
     inspector.resetOverrides()
   }
 
+  const handleLabelRename = (original: string, newLabel: string) => {
+    const current = (config.labelOverrides as Record<string, string> | undefined) ?? {}
+    updateConfig('labelOverrides', { ...current, [original]: newLabel })
+  }
+
   const handleMerge = (fromCat: string, toCat: string, label: string) => {
     if (!data) return
     const currentGroups = (config.mergedGroups as { label: string; members: string[] }[] | undefined) ?? []
@@ -113,6 +118,7 @@ function App() {
               onReset={resetConfig}
               onReorder={handleReorder}
               onMerge={handleMerge}
+              onLabelRename={handleLabelRename}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-6 text-center">

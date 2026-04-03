@@ -18,6 +18,14 @@ interface ActionPopup {
   mergeLabel: string
 }
 
+interface LabelEditPopup {
+  original: string
+  initialDisplay: string  // display text when editing started, to detect first keypress
+  x: number
+  y: number
+  value: string
+}
+
 interface Props {
   plugin: ChartPlugin
   config: ChartConfig
@@ -29,6 +37,7 @@ interface Props {
   onReset: () => void
   onReorder?: (fromCat: string, toCat: string) => void
   onMerge?: (fromCat: string, toCat: string, label: string) => void
+  onLabelRename?: (original: string, newLabel: string) => void
 }
 
 // Compute bar pixel bounds using ECharts axis conversion
@@ -72,7 +81,7 @@ function computeBarBounds(
 export function ChartViewer({
   plugin, config, data, theme,
   inspectorActive, onToggleInspector, onElementClick, onReset,
-  onReorder, onMerge,
+  onReorder, onMerge, onLabelRename,
 }: Props) {
   const chartRef = useRef<EChartsReact | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -82,6 +91,13 @@ export function ChartViewer({
   const [dragMode, setDragMode] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [actionPopup, setActionPopup] = useState<ActionPopup | null>(null)
+  const [labelEditPopup, setLabelEditPopup] = useState<LabelEditPopup | null>(null)
+
+  // Keep a ref to config so dblclick handler (stable callback) can read latest overrides
+  const configRef = useRef(config)
+  useEffect(() => { configRef.current = config }, [config])
+  // Guard against double-call: blur fires when focused input is removed from DOM on Enter
+  const labelConfirmCalled = useRef(false)
 
   // Mutable drag state — avoids stale closure issues in ZRender handlers
   const zrState = useRef<{ active: boolean; fromIdx: number | null }>({ active: false, fromIdx: null })
@@ -96,6 +112,9 @@ export function ChartViewer({
     if (!canRender) return null
     return plugin.buildOption(data, config, theme)
   }, [plugin, config, data, theme, canRender])
+
+  // No chart modification during editing — the input masks the canvas label via background color
+  const displayOption = option
 
   // Mutually exclusive modes
   useEffect(() => { if (inspectorActive && dragMode) setDragMode(false) }, [inspectorActive])
@@ -292,7 +311,63 @@ export function ChartViewer({
     })
   }, [inspectorActive, onElementClick])
 
-  const onEvents = useMemo(() => ({ click: handleChartClick }), [handleChartClick])
+  const handleDblClick = useCallback((params: unknown) => {
+    const p = params as {
+      componentType?: string
+      targetType?: string
+      value?: string
+      event?: { offsetX: number; offsetY: number }
+    }
+    if ((p.componentType !== 'xAxis' && p.componentType !== 'yAxis') || p.targetType !== 'axisLabel' || !p.value) return
+
+    const instance = chartRef.current?.getEchartsInstance()
+    if (!instance) return
+
+    const overrides = (configRef.current.labelOverrides as Record<string, string> | undefined) ?? {}
+    const currentDisplay = overrides[p.value] ?? p.value
+    const isH = (configRef.current.horizontal as boolean) ?? false
+
+    // ECharts event coords are canvas-relative; container has p-2 (8px) padding → add 8
+    const PADDING = 8
+    const rawX = p.event?.offsetX ?? 0
+    const rawY = p.event?.offsetY ?? 0
+
+    let x = rawX + PADDING
+    let y = rawY + PADDING
+
+    try {
+      const cvt = instance.convertToPixel.bind(instance) as (f: unknown, v: unknown) => number
+      // Get the category index to find the exact center of the slot
+      const opt = instance.getOption() as { xAxis?: {data?: string[]}[]; yAxis?: {data?: string[]}[] }
+      const cats = isH ? (opt.yAxis?.[0]?.data ?? []) : (opt.xAxis?.[0]?.data ?? [])
+      const catIdx = cats.indexOf(p.value)
+      if (catIdx >= 0) {
+        if (!isH) {
+          // Vertical bars: category on X axis
+          x = cvt({ xAxisIndex: 0 }, catIdx) + PADDING
+          // Y: axis baseline + default label margin (8px) + half font height
+          const baselineY = cvt({ yAxisIndex: 0 }, 0)
+          y = baselineY + 8 + Math.ceil(theme.fontSize / 2) + PADDING
+        } else {
+          // Horizontal bars: category on Y axis → exact Y center
+          y = cvt({ yAxisIndex: 0 }, catIdx) + PADDING
+        }
+      }
+    } catch { /* fallback to click coords */ }
+
+    labelConfirmCalled.current = false
+    setLabelEditPopup({ original: p.value, initialDisplay: currentDisplay, x, y, value: currentDisplay })
+  }, []) // stable — reads configRef and chartRef
+
+  const handleLabelRenameConfirm = () => {
+    if (!labelEditPopup || labelConfirmCalled.current) return
+    labelConfirmCalled.current = true
+    const trimmed = labelEditPopup.value.trim()
+    if (trimmed) onLabelRename?.(labelEditPopup.original, trimmed)
+    setLabelEditPopup(null)
+  }
+
+  const onEvents = useMemo(() => ({ click: handleChartClick, dblclick: handleDblClick }), [handleChartClick, handleDblClick])
 
   const toggleDragMode = () => {
     if (!dragMode && inspectorActive) onToggleInspector()
@@ -381,10 +456,10 @@ export function ChartViewer({
 
       {/* ── Chart area ── */}
       <div ref={containerRef} className={cn('relative flex-1 min-h-0 p-2', cursorClass)}>
-        {option ? (
+        {displayOption ? (
           <ReactECharts
             ref={chartRef}
-            option={option}
+            option={displayOption}
             style={{ height: '100%', width: '100%' }}
             opts={{ renderer: 'canvas', devicePixelRatio: 2 }}
             onEvents={onEvents}
@@ -423,6 +498,44 @@ export function ChartViewer({
             transition: 'none',
           }}
         />
+
+        {/* Label inline editor — all styles fixed at mount, nothing changes while typing */}
+        {labelEditPopup && (
+          <input
+            autoFocus
+            style={{
+              position: 'absolute',
+              left: labelEditPopup.x,
+              top: labelEditPopup.y,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 50,
+              // Fixed dimensions — nothing changes while typing
+              width: Math.max((labelEditPopup.initialDisplay.length + 4) * Math.ceil(theme.fontSize * 0.6), 80),
+              height: theme.fontSize + 2,
+              lineHeight: `${theme.fontSize + 2}px`,
+              // Covers canvas text behind with chart background color
+              background: theme.backgroundColor,
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+              WebkitAppearance: 'none',
+              color: theme.textColor,
+              fontFamily: theme.fontFamily,
+              fontSize: theme.fontSize,
+              textAlign: 'center',
+              padding: 0,
+              margin: 0,
+              caretColor: theme.colors[0],
+            }}
+            value={labelEditPopup.value}
+            onChange={(e) => setLabelEditPopup((p) => p && { ...p, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); handleLabelRenameConfirm() }
+              if (e.key === 'Escape') setLabelEditPopup(null)
+            }}
+            onBlur={handleLabelRenameConfirm}
+          />
+        )}
 
         {/* Action popup */}
         {actionPopup && (
