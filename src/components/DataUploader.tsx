@@ -2,13 +2,12 @@ import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, FileSpreadsheet, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { processFile } from '@/utils/fileProcessor'
 import type { ProcessedData } from '@/types/data.types'
 
 interface Props {
   onDataLoaded: (data: ProcessedData) => void
 }
-
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export function DataUploader({ onDataLoaded }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -19,21 +18,12 @@ export function DataUploader({ onDataLoaded }: Props) {
     setStatus('loading')
     setFilename(file.name)
     setErrorMsg('')
-
-    const form = new FormData()
-    form.append('file', file)
-
     try {
-      const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail ?? 'Error al procesar el archivo')
-      }
-      const data: ProcessedData = await res.json()
+      const data: ProcessedData = await processFile(file)
       onDataLoaded(data)
       setStatus('success')
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : 'Error desconocido')
+      setErrorMsg(e instanceof Error ? e.message : 'Error al procesar el archivo')
       setStatus('error')
     }
   }, [onDataLoaded])

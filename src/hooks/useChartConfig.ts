@@ -1,6 +1,30 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { ChartConfig, ChartPlugin } from '@/types/chart.types'
 import type { ProcessedData } from '@/types/data.types'
+import { getChartById } from '@/charts/registry'
+import { idbGet, idbSet, idbDelete } from '@/utils/db'
+
+const LS = {
+  pluginId: 'dvinci:pluginId',
+  config: 'dvinci:config',
+}
+
+const IDB_DATA_KEY = 'dvinci:data'
+
+function lsLoad<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    return null
+  }
+}
+
+function lsSave(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch { /* ignorar */ }
+}
 
 const PIE_IDS = ['pie', 'donut', 'treemap']
 const SCATTER_IDS = ['scatter', 'bubble']
@@ -34,9 +58,36 @@ function autoAssignAxes(plugin: ChartPlugin, data: ProcessedData): Partial<Chart
 }
 
 export function useChartConfig() {
-  const [plugin, setPlugin] = useState<ChartPlugin | null>(null)
-  const [config, setConfig] = useState<ChartConfig>({} as ChartConfig)
+  const [plugin, setPlugin] = useState<ChartPlugin | null>(() => {
+    const id = localStorage.getItem(LS.pluginId)
+    return id ? (getChartById(id) ?? null) : null
+  })
+  const [config, setConfig] = useState<ChartConfig>(() => lsLoad<ChartConfig>(LS.config) ?? ({} as ChartConfig))
   const [data, setData] = useState<ProcessedData | null>(null)
+
+  // Restaurar dataset desde IndexedDB al montar
+  useEffect(() => {
+    idbGet<ProcessedData>(IDB_DATA_KEY).then((saved) => {
+      if (saved) setData(saved)
+    })
+  }, [])
+
+  // Persistir plugin
+  useEffect(() => {
+    if (plugin) lsSave(LS.pluginId, plugin.id)
+    else localStorage.removeItem(LS.pluginId)
+  }, [plugin])
+
+  // Persistir config
+  useEffect(() => {
+    if (Object.keys(config).length > 0) lsSave(LS.config, config)
+  }, [config])
+
+  // Persistir data en IndexedDB (soporta datasets grandes)
+  useEffect(() => {
+    if (data) idbSet(IDB_DATA_KEY, data)
+    else idbDelete(IDB_DATA_KEY)
+  }, [data])
 
   const selectPlugin = useCallback((p: ChartPlugin, currentData: ProcessedData | null) => {
     const base = { ...p.defaultConfig }

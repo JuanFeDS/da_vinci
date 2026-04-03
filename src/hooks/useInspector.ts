@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { InspectedElement, ElementOverride } from '@/types/chart.types'
 
 export interface InspectorState {
@@ -11,12 +11,24 @@ function overrideKey(el: InspectedElement): string {
   return `${el.seriesIndex}:${el.dataIndex}`
 }
 
+const OVERRIDES_KEY = 'dvinci:overrides'
+
 export function useInspector() {
-  const [state, setState] = useState<InspectorState>({
-    active: false,
-    selected: null,
-    overrides: {},
+  const [state, setState] = useState<InspectorState>(() => {
+    try {
+      const raw = localStorage.getItem(OVERRIDES_KEY)
+      const overrides = raw ? (JSON.parse(raw) as Record<string, ElementOverride>) : {}
+      return { active: false, selected: null, overrides }
+    } catch {
+      return { active: false, selected: null, overrides: {} }
+    }
   })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(OVERRIDES_KEY, JSON.stringify(state.overrides))
+    } catch { /* ignorar */ }
+  }, [state.overrides])
 
   const toggleMode = useCallback(() => {
     setState((s) => ({ ...s, active: !s.active, selected: s.active ? null : s.selected }))
@@ -52,6 +64,17 @@ export function useInspector() {
     [state.overrides],
   )
 
+  const updateAllInSeries = useCallback((seriesIndex: number, dataCount: number, patch: Partial<ElementOverride>) => {
+    setState((s) => {
+      const next = { ...s.overrides }
+      for (let i = 0; i < dataCount; i++) {
+        const key = `${seriesIndex}:${i}`
+        next[key] = { ...next[key], ...patch }
+      }
+      return { ...s, overrides: next }
+    })
+  }, [])
+
   const resetOverrides = useCallback(() => {
     setState((s) => ({ ...s, overrides: {}, selected: null }))
   }, [])
@@ -64,6 +87,7 @@ export function useInspector() {
     selectElement,
     clearSelection,
     updateOverride,
+    updateAllInSeries,
     removeOverride,
     getOverride,
     resetOverrides,
