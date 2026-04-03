@@ -5,7 +5,7 @@ import pandas as pd
 from fastapi import UploadFile, HTTPException
 
 
-ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
+ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
 MAX_FILE_SIZE_MB = 50
 
 
@@ -33,8 +33,10 @@ async def read_dataframe(file: UploadFile) -> pd.DataFrame:
     try:
         if ext == ".csv":
             df = pd.read_csv(io.BytesIO(contents), encoding="utf-8-sig")
+        elif ext == ".xlsx":
+            df = pd.read_excel(io.BytesIO(contents), engine="openpyxl")
         else:
-            df = pd.read_excel(io.BytesIO(contents))
+            df = pd.read_excel(io.BytesIO(contents), engine="xlrd")
     except Exception as e:
         raise HTTPException(
             status_code=422,
