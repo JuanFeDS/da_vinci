@@ -31,6 +31,7 @@ const BAR_CONFIG_SECTIONS = [
       { key: 'showLegend', label: 'Mostrar leyenda', type: 'switch' as const, defaultValue: false },
       { key: 'showGrid', label: 'Mostrar cuadrícula', type: 'switch' as const, defaultValue: true },
       { key: 'showLabels', label: 'Mostrar etiquetas', type: 'switch' as const, defaultValue: false },
+      { key: 'showAllTicks', label: 'Forzar todos los ticks', type: 'switch' as const, defaultValue: false },
       { key: 'tickRotation', label: 'Rotación de ticks', type: 'slider' as const, defaultValue: 0, min: -90, max: 90, step: 15 },
     ],
   },
@@ -70,6 +71,10 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const opacity = (config.opacity as number) / 100
   const colorMode = config.colorMode as string
   const tickRotation = (config.tickRotation as number) ?? 0
+  const showAllTicks = config.showAllTicks as boolean
+  const labelOverrides = (config.labelOverrides as Record<string, string> | undefined) ?? {}
+  const hasLabelOverrides = Object.keys(labelOverrides).length > 0
+  const labelFormatter = hasLabelOverrides ? (value: string) => labelOverrides[value] ?? value : undefined
 
   const seriesData = workingData.map((row, i) => {
     const ov = getOverrideForItem(overrides, 0, i)
@@ -107,9 +112,9 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
     xAxis: isHorizontal
       ? { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } }
-      : { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
+      : { type: 'category', data: categories, triggerEvent: true, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation, ...(showAllTicks ? { interval: 0 } : {}), ...(labelFormatter ? { formatter: labelFormatter } : {}) }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
     yAxis: isHorizontal
-      ? { type: 'category', data: categories, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation }, axisLine: { lineStyle: { color: 'transparent' } } }
+      ? { type: 'category', data: categories, triggerEvent: true, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation, ...(showAllTicks ? { interval: 0 } : {}), ...(labelFormatter ? { formatter: labelFormatter } : {}) }, axisLine: { lineStyle: { color: 'transparent' } } }
       : { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
     series: [{
       type: 'bar',
@@ -142,6 +147,7 @@ export const BarChart: ChartPlugin = {
     horizontal: false,
     showLabels: false,
     numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {}, tickRotation: 0,
+    showAllTicks: false, labelOverrides: {},
   },
   buildOption,
   supportsColorBy: true,
