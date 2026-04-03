@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Sparkles, Database } from 'lucide-react'
 import { useChartConfig } from '@/hooks/useChartConfig'
 import { useTheme } from '@/hooks/useTheme'
@@ -23,11 +23,45 @@ function App() {
   const handleElementClick = (el: InspectedElement) => inspector.selectElement(el)
   const selectedOverride = inspector.selected ? inspector.getOverride(inspector.selected) : {}
 
+  const handleReorder = (fromCat: string, toCat: string) => {
+    if (!data) return
+    const currentOrder = (config.categoryOrder as string[] | undefined)
+      ?? data.data.map((r) => String(r[config.xAxis] ?? ''))
+    const newOrder = [...currentOrder]
+    const fi = newOrder.indexOf(fromCat)
+    const ti = newOrder.indexOf(toCat)
+    if (fi === -1 || ti === -1) return
+    ;[newOrder[fi], newOrder[ti]] = [newOrder[ti], newOrder[fi]]
+    updateConfig('categoryOrder', newOrder)
+    inspector.resetOverrides()
+  }
+
+  const handleMerge = (fromCat: string, toCat: string, label: string) => {
+    if (!data) return
+    const currentGroups = (config.mergedGroups as { label: string; members: string[] }[] | undefined) ?? []
+    updateConfig('mergedGroups', [...currentGroups, { label, members: [fromCat, toCat] }])
+
+    const currentOrder = (config.categoryOrder as string[] | undefined)
+      ?? data.data.map((r) => String(r[config.xAxis] ?? ''))
+    const fi = currentOrder.indexOf(fromCat)
+    const ti = currentOrder.indexOf(toCat)
+    const insertAt = Math.min(fi === -1 ? 99999 : fi, ti === -1 ? 99999 : ti)
+    const newOrder = currentOrder.filter((c) => c !== fromCat && c !== toCat)
+    newOrder.splice(Math.min(insertAt, newOrder.length), 0, label)
+    updateConfig('categoryOrder', newOrder)
+    inspector.resetOverrides()
+  }
+
   useEffect(() => {
     updateConfig('elementOverrides', inspector.overrides)
   }, [inspector.overrides])
 
+  const isFirstRender = useRef(true)
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     inspector.resetOverrides()
   }, [plugin?.id, data?.dataset_info.filename])
 
@@ -77,6 +111,8 @@ function App() {
               onToggleInspector={inspector.toggleMode}
               onElementClick={handleElementClick}
               onReset={resetConfig}
+              onReorder={handleReorder}
+              onMerge={handleMerge}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
@@ -98,7 +134,7 @@ function App() {
 
         {/* Sidebar derecho: configuración */}
         {showWorkspace && (
-          <aside className="w-64 shrink-0 border-l border-white/5 glass">
+          <aside className="w-72 shrink-0 border-l border-white/5 glass">
             <ConfigPanel
               plugin={plugin}
               config={config}
@@ -113,6 +149,7 @@ function App() {
               onThemeSelect={selectTheme}
               onApplyPreset={handleApplyPreset}
               onInspectorUpdate={(patch) => inspector.selected && inspector.updateOverride(inspector.selected, patch)}
+              onInspectorUpdateAll={(patch) => inspector.selected && data && inspector.updateAllInSeries(inspector.selected.seriesIndex, data.data.length, patch)}
               onInspectorResetElement={() => inspector.selected && inspector.removeOverride(inspector.selected)}
               onClearSelection={inspector.clearSelection}
             />
