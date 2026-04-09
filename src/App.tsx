@@ -41,6 +41,10 @@ function App() {
     updateConfig('labelOverrides', { ...current, [original]: newLabel })
   }
 
+  const handleTextBlocksChange = (blocks: import('@/types/chart.types').TextBlock[]) => {
+    updateConfig('textBlocks', blocks)
+  }
+
   const handleMerge = (fromCat: string, toCat: string, label: string) => {
     if (!data) return
     const currentGroups = (config.mergedGroups as { label: string; members: string[] }[] | undefined) ?? []
@@ -119,6 +123,7 @@ function App() {
               onReorder={handleReorder}
               onMerge={handleMerge}
               onLabelRename={handleLabelRename}
+              onTextBlocksChange={handleTextBlocksChange}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-6 text-center">

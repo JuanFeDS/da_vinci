@@ -1,13 +1,14 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react'
 import ReactECharts from 'echarts-for-react'
 import type EChartsReact from 'echarts-for-react'
-import { Download, RotateCcw, FileJson, MousePointer2, GripVertical } from 'lucide-react'
+import { Download, RotateCcw, FileJson, MousePointer2, GripVertical, Type } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import type { ChartPlugin, ChartConfig, InspectedElement } from '@/types/chart.types'
+import type { ChartPlugin, ChartConfig, InspectedElement, TextBlock } from '@/types/chart.types'
 import type { Theme } from '@/types/theme.types'
 import type { DataRow } from '@/types/data.types'
 import { exportChartAsPNG } from '@/utils/chartExport'
 import { exportConfigAsJSON } from '@/utils/configExport'
+import { TextBlockLayer } from '@/components/TextBlockLayer'
 
 interface ActionPopup {
   fromCat: string
@@ -38,6 +39,7 @@ interface Props {
   onReorder?: (fromCat: string, toCat: string) => void
   onMerge?: (fromCat: string, toCat: string, label: string) => void
   onLabelRename?: (original: string, newLabel: string) => void
+  onTextBlocksChange?: (blocks: TextBlock[]) => void
 }
 
 // Compute bar pixel bounds using ECharts axis conversion
@@ -81,7 +83,7 @@ function computeBarBounds(
 export function ChartViewer({
   plugin, config, data, theme,
   inspectorActive, onToggleInspector, onElementClick, onReset,
-  onReorder, onMerge, onLabelRename,
+  onReorder, onMerge, onLabelRename, onTextBlocksChange,
 }: Props) {
   const chartRef = useRef<EChartsReact | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -92,6 +94,10 @@ export function ChartViewer({
   const [isDragging, setIsDragging] = useState(false)
   const [actionPopup, setActionPopup] = useState<ActionPopup | null>(null)
   const [labelEditPopup, setLabelEditPopup] = useState<LabelEditPopup | null>(null)
+
+  // Text blocks
+  const [pendingEditId, setPendingEditId] = useState<string | null>(null)
+  const textBlocks = (config.textBlocks as TextBlock[] | undefined) ?? []
 
   // Keep a ref to config so dblclick handler (stable callback) can read latest overrides
   const configRef = useRef(config)
@@ -283,6 +289,20 @@ export function ChartViewer({
     /* eslint-enable @typescript-eslint/no-explicit-any */
   }, [dragMode, option, theme])
 
+  // ── Text block add ──────────────────────────────────────────────────────
+  const addTextBlock = () => {
+    const id = `tb-${Date.now()}`
+    const newBlock: TextBlock = {
+      id, text: 'Texto', x: 50, y: 50,
+      width: 160, fontSize: 16,
+      fontFamily: 'Inter, system-ui, sans-serif',
+      color: theme.textColor,
+      bold: false, italic: false,
+    }
+    onTextBlocksChange?.([...textBlocks, newBlock])
+    setPendingEditId(id)
+  }
+
   // ── Regular chart interactions ──────────────────────────────────────────
   const handleExport = () => {
     const instance = chartRef.current?.getEchartsInstance()
@@ -431,6 +451,13 @@ export function ChartViewer({
             </button>
           )}
           <button
+            onClick={addTextBlock}
+            title="Agregar bloque de texto"
+            className="btn-ghost border-transparent flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-all duration-200 border"
+          >
+            <Type className="w-3.5 h-3.5" />
+          </button>
+          <button
             onClick={onToggleInspector}
             title="Modo inspector"
             className={cn(
@@ -497,6 +524,15 @@ export function ChartViewer({
             zIndex: 40,
             transition: 'none',
           }}
+        />
+
+        {/* Text blocks overlay */}
+        <TextBlockLayer
+          blocks={textBlocks}
+          containerRef={containerRef}
+          onChange={(blocks) => onTextBlocksChange?.(blocks)}
+          autoEditId={pendingEditId}
+          onAutoEditConsumed={() => setPendingEditId(null)}
         />
 
         {/* Label inline editor — all styles fixed at mount, nothing changes while typing */}

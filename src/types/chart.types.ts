@@ -8,6 +8,20 @@ export type ChartCategory = 'comparison' | 'trend' | 'distribution' | 'correlati
 
 export type ColorMode = 'uniform' | 'byCategory' | 'customMap'
 
+export interface TextBlock {
+  id: string
+  text: string
+  x: number         // percentage 0–100 relative to chart container width
+  y: number         // percentage 0–100 relative to chart container height
+  width: number     // pixels
+  height?: number   // pixels; undefined = auto (grows with content)
+  fontSize: number  // pixels
+  fontFamily: string
+  color: string
+  bold: boolean
+  italic: boolean
+}
+
 export interface ElementOverride {
   color?: string
   opacity?: number
@@ -64,6 +78,7 @@ export interface ChartConfig {
   colorField: string
   colorMap: Record<string, string>
   elementOverrides: Record<string, ElementOverride>
+  textBlocks?: TextBlock[]
   [key: string]: unknown
 }
 
