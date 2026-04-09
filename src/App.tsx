@@ -41,6 +41,11 @@ function App() {
     updateConfig('labelOverrides', { ...current, [original]: newLabel })
   }
 
+  const handleSeriesNameRename = (original: string, newLabel: string) => {
+    const current = (config.seriesNameOverrides as Record<string, string> | undefined) ?? {}
+    updateConfig('seriesNameOverrides', { ...current, [original]: newLabel })
+  }
+
   const handleTextBlocksChange = (blocks: import('@/types/chart.types').TextBlock[]) => {
     updateConfig('textBlocks', blocks)
   }
@@ -123,6 +128,7 @@ function App() {
               onReorder={handleReorder}
               onMerge={handleMerge}
               onLabelRename={handleLabelRename}
+              onSeriesNameRename={handleSeriesNameRename}
               onTextBlocksChange={handleTextBlocksChange}
             />
           ) : (

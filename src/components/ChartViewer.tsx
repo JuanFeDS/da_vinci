@@ -25,6 +25,7 @@ interface LabelEditPopup {
   x: number
   y: number
   value: string
+  type: 'axis' | 'series'
 }
 
 interface Props {
@@ -39,6 +40,7 @@ interface Props {
   onReorder?: (fromCat: string, toCat: string) => void
   onMerge?: (fromCat: string, toCat: string, label: string) => void
   onLabelRename?: (original: string, newLabel: string) => void
+  onSeriesNameRename?: (original: string, newLabel: string) => void
   onTextBlocksChange?: (blocks: TextBlock[]) => void
 }
 
@@ -83,7 +85,7 @@ function computeBarBounds(
 export function ChartViewer({
   plugin, config, data, theme,
   inspectorActive, onToggleInspector, onElementClick, onReset,
-  onReorder, onMerge, onLabelRename, onTextBlocksChange,
+  onReorder, onMerge, onLabelRename, onSeriesNameRename, onTextBlocksChange,
 }: Props) {
   const chartRef = useRef<EChartsReact | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -336,8 +338,24 @@ export function ChartViewer({
       componentType?: string
       targetType?: string
       value?: string
+      name?: string
       event?: { offsetX: number; offsetY: number }
     }
+
+    const PADDING = 8
+
+    // ── Legend item rename ──────────────────────────────────────────────────
+    if (p.componentType === 'legend' && p.name) {
+      const overrides = (configRef.current.seriesNameOverrides as Record<string, string> | undefined) ?? {}
+      const currentDisplay = overrides[p.name] ?? p.name
+      const x = (p.event?.offsetX ?? 0) + PADDING
+      const y = (p.event?.offsetY ?? 0) + PADDING
+      labelConfirmCalled.current = false
+      setLabelEditPopup({ original: p.name, initialDisplay: currentDisplay, x, y, value: currentDisplay, type: 'series' })
+      return
+    }
+
+    // ── Axis label rename ───────────────────────────────────────────────────
     if ((p.componentType !== 'xAxis' && p.componentType !== 'yAxis') || p.targetType !== 'axisLabel' || !p.value) return
 
     const instance = chartRef.current?.getEchartsInstance()
@@ -348,7 +366,6 @@ export function ChartViewer({
     const isH = (configRef.current.horizontal as boolean) ?? false
 
     // ECharts event coords are canvas-relative; container has p-2 (8px) padding → add 8
-    const PADDING = 8
     const rawX = p.event?.offsetX ?? 0
     const rawY = p.event?.offsetY ?? 0
 
@@ -357,33 +374,32 @@ export function ChartViewer({
 
     try {
       const cvt = instance.convertToPixel.bind(instance) as (f: unknown, v: unknown) => number
-      // Get the category index to find the exact center of the slot
       const opt = instance.getOption() as { xAxis?: {data?: string[]}[]; yAxis?: {data?: string[]}[] }
       const cats = isH ? (opt.yAxis?.[0]?.data ?? []) : (opt.xAxis?.[0]?.data ?? [])
       const catIdx = cats.indexOf(p.value)
       if (catIdx >= 0) {
         if (!isH) {
-          // Vertical bars: category on X axis
           x = cvt({ xAxisIndex: 0 }, catIdx) + PADDING
-          // Y: axis baseline + default label margin (8px) + half font height
           const baselineY = cvt({ yAxisIndex: 0 }, 0)
           y = baselineY + 8 + Math.ceil(theme.fontSize / 2) + PADDING
         } else {
-          // Horizontal bars: category on Y axis → exact Y center
           y = cvt({ yAxisIndex: 0 }, catIdx) + PADDING
         }
       }
     } catch { /* fallback to click coords */ }
 
     labelConfirmCalled.current = false
-    setLabelEditPopup({ original: p.value, initialDisplay: currentDisplay, x, y, value: currentDisplay })
+    setLabelEditPopup({ original: p.value, initialDisplay: currentDisplay, x, y, value: currentDisplay, type: 'axis' })
   }, []) // stable — reads configRef and chartRef
 
   const handleLabelRenameConfirm = () => {
     if (!labelEditPopup || labelConfirmCalled.current) return
     labelConfirmCalled.current = true
     const trimmed = labelEditPopup.value.trim()
-    if (trimmed) onLabelRename?.(labelEditPopup.original, trimmed)
+    if (trimmed) {
+      if (labelEditPopup.type === 'series') onSeriesNameRename?.(labelEditPopup.original, trimmed)
+      else onLabelRename?.(labelEditPopup.original, trimmed)
+    }
     setLabelEditPopup(null)
   }
 
