@@ -26,10 +26,10 @@ export const STACK_DISPLAY_CONTROLS = [
 ]
 
 export const SHARED_STACK_DEFAULT_CONFIG = {
-  xAxis: '', valueCol: '', stackCol: '',
+  xAxis: '', yAxis: '', valueCol: '', stackCol: '',
   title: '', xAxisTitle: '', yAxisTitle: '',
   showLegend: true, legendPosition: 'bottom', showGrid: true,
   percentMode: false, showDataZoom: false,
   labelOverrides: {}, seriesNameOverrides: {},
-  numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {},
+  numericColumns: [], colorMode: 'uniform' as const, colorField: '', colorMap: {}, elementOverrides: {},
 }

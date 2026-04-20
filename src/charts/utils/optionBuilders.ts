@@ -44,7 +44,7 @@ export function buildTitle(config: ChartConfig, theme: Theme): EChartsOption['ti
 
 export function buildTooltip(
   percentMode: boolean,
-  theme: Theme,
+  _theme: Theme,
   opts?: { axisPointer?: 'shadow' | 'line' | 'cross' }
 ): EChartsOption['tooltip'] {
   return {
