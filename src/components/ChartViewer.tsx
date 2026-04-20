@@ -42,6 +42,7 @@ interface Props {
   onLabelRename?: (original: string, newLabel: string) => void
   onSeriesNameRename?: (original: string, newLabel: string) => void
   onTextBlocksChange?: (blocks: TextBlock[]) => void
+  onLegendChange?: (selected: Record<string, boolean>) => void
 }
 
 // Compute bar pixel bounds using ECharts axis conversion
@@ -85,7 +86,7 @@ function computeBarBounds(
 export function ChartViewer({
   plugin, config, data, theme,
   inspectorActive, onToggleInspector, onElementClick, onReset,
-  onReorder, onMerge, onLabelRename, onSeriesNameRename, onTextBlocksChange,
+  onReorder, onMerge, onLabelRename, onSeriesNameRename, onTextBlocksChange, onLegendChange,
 }: Props) {
   const chartRef = useRef<EChartsReact | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -121,8 +122,19 @@ export function ChartViewer({
     return plugin.buildOption(data, config, theme)
   }, [plugin, config, data, theme, canRender])
 
-  // No chart modification during editing — the input masks the canvas label via background color
-  const displayOption = option
+  // Inject persisted legend selection so ECharts applies it even after a merge update
+  const displayOption = useMemo(() => {
+    if (!option) return null
+    const savedSelected = config.legendSelected as Record<string, boolean> | undefined
+    const seriesNames = (option.series as { name?: string }[] ?? [])
+      .map(s => s.name).filter(Boolean) as string[]
+    if (seriesNames.length === 0) return option
+    const selected: Record<string, boolean> = {}
+    seriesNames.forEach(name => { selected[name] = savedSelected?.[name] ?? true })
+    const existingLegend = option.legend as Record<string, unknown> | undefined
+    if (!existingLegend || (existingLegend as { show?: boolean }).show === false) return option
+    return { ...option, legend: { ...existingLegend, selected } }
+  }, [option, config.legendSelected])
 
   // Mutually exclusive modes
   useEffect(() => { if (inspectorActive && dragMode) setDragMode(false) }, [inspectorActive])
@@ -403,7 +415,16 @@ export function ChartViewer({
     setLabelEditPopup(null)
   }
 
-  const onEvents = useMemo(() => ({ click: handleChartClick, dblclick: handleDblClick }), [handleChartClick, handleDblClick])
+  const handleLegendSelectChanged = useCallback((params: unknown) => {
+    const p = params as { selected: Record<string, boolean> }
+    onLegendChange?.(p.selected)
+  }, [onLegendChange])
+
+  const onEvents = useMemo(() => ({
+    click: handleChartClick,
+    dblclick: handleDblClick,
+    legendselectchanged: handleLegendSelectChanged,
+  }), [handleChartClick, handleDblClick, handleLegendSelectChanged])
 
   const toggleDragMode = () => {
     if (!dragMode && inspectorActive) onToggleInspector()
