@@ -36,7 +36,7 @@ export function ChartSelector({ activeId, onSelect }: Props) {
                 return (
                   <button
                     key={plugin.id}
-                    onClick={() => onSelect(plugin)}
+                    onClick={() => !isActive && onSelect(plugin)}
                     title={plugin.description}
                     className={cn(
                       'flex flex-col items-center gap-1.5 py-2 px-1 rounded-xl border transition-all duration-200',
