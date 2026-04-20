@@ -501,12 +501,12 @@ export function ChartViewer({
       <div ref={containerRef} className={cn('relative flex-1 min-h-0 p-2', cursorClass)}>
         {displayOption ? (
           <ReactECharts
+            key={plugin.id}
             ref={chartRef}
             option={displayOption}
             style={{ height: '100%', width: '100%' }}
             opts={{ renderer: 'canvas', devicePixelRatio: 2 }}
             onEvents={onEvents}
-            notMerge
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-white/20">
