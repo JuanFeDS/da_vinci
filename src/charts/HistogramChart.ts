@@ -3,6 +3,7 @@ import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
 import { getOverrideForItem } from './utils/colorResolver'
+import { compactNumber } from './utils/numberFormat'
 
 const HISTOGRAM_SECTIONS = [
   {
@@ -72,10 +73,10 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#fff' } },
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
     xAxis: { type: 'category', data: labels, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: 30 }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
-    yAxis: { type: 'value', name: 'Frecuencia', nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
+    yAxis: { type: 'value', name: 'Frecuencia', nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, formatter: (v: number) => compactNumber(v) }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
     series: [{
       type: 'bar',
-      data: histData, barCategoryGap: '2%', itemStyle, label: config.showLabels ? { show: true, color: '#fff', fontSize: 10, position: 'top' as const } : { show: false } }],
+      data: histData, barCategoryGap: '2%', itemStyle, label: config.showLabels ? { show: true, color: '#fff', fontSize: 10, position: 'top' as const, formatter: (p: { value: unknown }) => compactNumber(p.value as number) } : { show: false } }],
   }
 }
 

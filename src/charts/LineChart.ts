@@ -3,6 +3,7 @@ import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
 import { getOverrideForItem } from './utils/colorResolver'
+import { compactNumber } from './utils/numberFormat'
 
 const LINE_CONFIG_SECTIONS = [
   {
@@ -69,7 +70,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   return {
     backgroundColor: theme.backgroundColor,
     title: config.title ? { text: config.title, textStyle: { color: '#fff', fontFamily: theme.fontFamily, fontSize: 16 }, left: 'center', top: 12 } : undefined,
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#fff' } },
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#fff' }, valueFormatter: (v: unknown) => compactNumber(v as number) },
     legend: config.showLegend ? { textStyle: { color: theme.textColor }, bottom: 0 } : undefined,
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
     xAxis: {
@@ -81,7 +82,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: theme.textColor, fontSize: theme.fontSize },
+      axisLabel: { color: theme.textColor, fontSize: theme.fontSize, formatter: (v: number) => compactNumber(v) },
       splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } },
       axisLine: { lineStyle: { color: 'transparent' } },
     },
@@ -95,7 +96,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
         lineStyle: { color, width: config.lineWidth as number, shadowBlur: 12, shadowColor: `${color}55` },
         itemStyle: { color, borderWidth: 2, borderColor: '#fff' },
         areaStyle,
-        label: config.showLabels ? { show: true, color: '#fff', fontSize: 10 } : { show: false },
+        label: config.showLabels ? { show: true, color: '#fff', fontSize: 10, formatter: (p: { value: unknown }) => compactNumber(p.value as number) } : { show: false },
         emphasis: { scale: true, itemStyle: { shadowBlur: 20, shadowColor: `${color}88` } },
       },
     ],

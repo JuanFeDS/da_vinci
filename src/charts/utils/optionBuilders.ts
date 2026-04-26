@@ -55,7 +55,7 @@ export function buildTooltip(
     textStyle:       { color: '#fff' },
     valueFormatter:  percentMode
       ? (v: unknown) => `${(v as number).toFixed(1)}%`
-      : (v: unknown) => (v as number).toFixed(2),
+      : (v: unknown) => compactNumber(v as number),
   }
 }
 

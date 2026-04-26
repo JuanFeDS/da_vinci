@@ -3,6 +3,7 @@ import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
 import { resolveItemColor, getOverrideForItem } from './utils/colorResolver'
+import { compactNumber } from './utils/numberFormat'
 
 const SCATTER_CONFIG_SECTIONS = [
   {
@@ -70,13 +71,13 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
       textStyle: { color: '#fff' },
       formatter: (params: unknown) => {
         const p = params as { value: number[] }
-        return `${config.xAxis}: ${p.value[0]}<br/>${config.yAxis}: ${p.value[1]}`
+        return `${config.xAxis}: ${compactNumber(p.value[0])}<br/>${config.yAxis}: ${compactNumber(p.value[1])}`
       },
     },
     legend: config.showLegend ? { textStyle: { color: theme.textColor }, bottom: 0 } : undefined,
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
-    xAxis: { type: 'value', name: config.xAxis, nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } } },
-    yAxis: { type: 'value', name: config.yAxis, nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
+    xAxis: { type: 'value', name: config.xAxis, nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, formatter: (v: number) => compactNumber(v) }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } } },
+    yAxis: { type: 'value', name: config.yAxis, nameTextStyle: { color: theme.textColor }, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, formatter: (v: number) => compactNumber(v) }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
     series: [
       {
         type: 'scatter',

@@ -2,7 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
-import { getOverrideForItem } from './utils/colorResolver'
+import { getOverrideForItem, getEffectiveSeriesColor } from './utils/colorResolver'
 import {
   buildTitle, buildTooltip, buildLegend, buildGrid, buildDataZoom,
   buildXAxis, buildYAxis, buildPivotAgg,
@@ -48,8 +48,9 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const labelFormatter      = hasLabelOverrides ? (value: string) => labelOverrides[value] ?? value : undefined
 
   const series = stackValuesOrdered.map((sv, seriesIdx) => {
-    const color    = theme.colors[seriesIdx % theme.colors.length]
-    const hexAlpha = Math.round(fillOpacity * 255).toString(16).padStart(2, '0')
+    const baseColor      = theme.colors[seriesIdx % theme.colors.length]
+    const effectiveColor = getEffectiveSeriesColor(seriesIdx, categoriesOrdered.length, overrides, baseColor)
+    const hexAlpha       = Math.round(fillOpacity * 255).toString(16).padStart(2, '0')
 
     return {
       name:   seriesNameOverrides[sv] ?? sv,
@@ -58,12 +59,12 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
       smooth: config.smooth as boolean,
       symbol: (config.showPoints as boolean) ? 'circle' : 'none',
       symbolSize: 5,
-      lineStyle: { color, width: config.lineWidth as number },
-      itemStyle: { color },
+      lineStyle: { color: effectiveColor, width: config.lineWidth as number },
+      itemStyle: { color: effectiveColor },
       areaStyle: {
         color: {
           type: 'linear' as const, x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [{ offset: 0, color: `${color}${hexAlpha}` }, { offset: 1, color: `${color}15` }],
+          colorStops: [{ offset: 0, color: `${effectiveColor}${hexAlpha}` }, { offset: 1, color: `${effectiveColor}15` }],
         },
       },
       data: categoriesOrdered.map((cat, dataIdx) => {
@@ -76,7 +77,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
           name:      cat,
           metaIndex: dataIdx,
           itemStyle: ov.color
-            ? { color: ov.color, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 }
+            ? { color: ov.color as string, opacity: ov.opacity !== undefined ? (ov.opacity as number) / 100 : 1 }
             : undefined,
         }
       }),
@@ -88,6 +89,7 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
 
   return {
     backgroundColor: theme.backgroundColor,
+    color:    theme.colors,
     title:    buildTitle(config, theme),
     tooltip:  buildTooltip(percentMode, theme),
     legend:   buildLegend(config, legendNames, theme),

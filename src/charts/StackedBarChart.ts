@@ -2,11 +2,12 @@ import type { EChartsOption } from 'echarts'
 import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
-import { getOverrideForItem } from './utils/colorResolver'
+import { getOverrideForItem, getEffectiveSeriesColor } from './utils/colorResolver'
 import {
   buildTitle, buildTooltip, buildLegend, buildGrid, buildDataZoom,
   buildXAxis, buildYAxis, buildPivotAgg,
 } from './utils/optionBuilders'
+import { compactNumber } from './utils/numberFormat'
 import {
   STACK_DATA_CONTROLS, STACK_DISPLAY_CONTROLS, SHARED_STACK_DEFAULT_CONFIG,
 } from './utils/sharedSections'
@@ -49,13 +50,16 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   const hasLabelOverrides   = Object.keys(labelOverrides).length > 0
   const labelFormatter      = hasLabelOverrides ? (value: string) => labelOverrides[value] ?? value : undefined
 
-  const series = stackValuesOrdered.map((sv, seriesIdx) => ({
+  const series = stackValuesOrdered.map((sv, seriesIdx) => {
+    const baseColor     = theme.colors[seriesIdx % theme.colors.length]
+    const effectiveColor = getEffectiveSeriesColor(seriesIdx, categoriesOrdered.length, overrides, baseColor)
+    return {
     name: seriesNameOverrides[sv] ?? sv,
     type: 'bar' as const,
     stack: 'total',
+    itemStyle: { color: effectiveColor },
     data: categoriesOrdered.map((cat, dataIdx) => {
       const ov           = getOverrideForItem(overrides, seriesIdx, dataIdx)
-      const baseColor    = theme.colors[seriesIdx % theme.colors.length]
       const finalColor   = ov.color ?? baseColor
       const finalOpacity = ov.opacity !== undefined ? (ov.opacity as number) / 100 : opacity
       const rawValue     = agg.get(cat)?.get(sv) ?? 0
@@ -71,14 +75,16 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
           : undefined,
       }
     }),
-    label:    config.showLabels ? { show: true, color: '#fff', fontSize: 10 } : { show: false },
+    label:    config.showLabels ? { show: true, color: '#fff', fontSize: 10, formatter: (p: { value: unknown }) => compactNumber(p.value as number) } : { show: false },
     emphasis: { focus: 'series' as const },
-  }))
+  }
+  })
 
   const legendNames = [...stackValuesOrdered].reverse().map((sv) => seriesNameOverrides[sv] ?? sv)
 
   return {
     backgroundColor: theme.backgroundColor,
+    color:    theme.colors,
     title:    buildTitle(config, theme),
     tooltip:  buildTooltip(percentMode, theme, { axisPointer: 'shadow' }),
     legend:   buildLegend(config, legendNames, theme),
