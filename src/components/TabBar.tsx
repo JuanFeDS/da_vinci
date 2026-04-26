@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Copy } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import type { Visualization, SaveStatus } from '@/types/visualization.types'
 
@@ -11,9 +11,10 @@ interface Props {
   onClose: (id: string) => void
   onNew: () => void
   onRename: (id: string, name: string) => void
+  onDuplicate: (id: string) => void
 }
 
-export function TabBar({ tabs, activeTabId, saveStatuses, onSwitch, onClose, onNew, onRename }: Props) {
+export function TabBar({ tabs, activeTabId, saveStatuses, onSwitch, onClose, onNew, onRename, onDuplicate }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -89,9 +90,22 @@ export function TabBar({ tabs, activeTabId, saveStatuses, onSwitch, onClose, onN
               <span className="text-xs truncate flex-1">{tab.name}</span>
             )}
 
+            {/* Duplicate */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(tab.id) }}
+              title="Duplicar pestaña"
+              className={cn(
+                'shrink-0 rounded p-0.5 transition-colors',
+                'text-transparent group-hover:text-white/40 hover:!text-white hover:bg-white/10',
+              )}
+            >
+              <Copy className="w-3 h-3" />
+            </button>
+
             {/* Close */}
             <button
               onClick={(e) => { e.stopPropagation(); onClose(tab.id) }}
+              title="Cerrar pestaña"
               className={cn(
                 'shrink-0 rounded p-0.5 transition-colors',
                 'text-transparent group-hover:text-white/40 hover:!text-white hover:bg-white/10',

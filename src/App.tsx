@@ -17,7 +17,7 @@ function App() {
     tabs, activeTabId, saveStatuses, allViz, initialized,
     plugin, config, data, themeId,
     selectPlugin, updateConfig, updateData, resetConfig, updateTheme,
-    newTab, closeTab, switchTab, renameTab,
+    newTab, closeTab, switchTab, duplicateTab, renameTab,
     openVisualization, deleteViz,
   } = useVisualizations()
 
@@ -186,6 +186,7 @@ function App() {
         onClose={closeTab}
         onNew={handleNewTab}
         onRename={renameTab}
+        onDuplicate={duplicateTab}
       />
 
       {/* Main workspace */}
