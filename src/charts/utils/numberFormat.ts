@@ -2,10 +2,12 @@
  * Compact axis label formatter: 1,500 → "1.5K", 2,400,000 → "2.4M", etc.
  */
 export function compactNumber(v: number): string {
-  if (v >= 1e12) return `${+( v / 1e12).toFixed(1)}T`
-  if (v >= 1e9)  return `${+( v / 1e9 ).toFixed(1)}B`
-  if (v >= 1e6)  return `${+( v / 1e6 ).toFixed(1)}M`
-  if (v >= 1e3)  return `${+( v / 1e3 ).toFixed(1)}K`
+  const abs  = Math.abs(v)
+  const sign = v < 0 ? '-' : ''
+  if (abs >= 1e12) return `${sign}${+(abs / 1e12).toFixed(1)}T`
+  if (abs >= 1e9)  return `${sign}${+(abs / 1e9 ).toFixed(1)}B`
+  if (abs >= 1e6)  return `${sign}${+(abs / 1e6 ).toFixed(1)}M`
+  if (abs >= 1e3)  return `${sign}${+(abs / 1e3 ).toFixed(1)}K`
   return String(v)
 }
 
