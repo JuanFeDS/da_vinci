@@ -26,3 +26,22 @@ export function getOverrideForItem(
 ): ElementOverride {
   return (overrides[`${seriesIdx}:${dataIdx}`] ?? {}) as ElementOverride
 }
+
+// Returns the override color if ALL items in the series share the same one; otherwise the fallback.
+// Used to keep the legend marker in sync when the user applies "todos" via the inspector.
+export function getEffectiveSeriesColor(
+  seriesIdx: number,
+  dataCount: number,
+  overrides: Record<string, Record<string, unknown>>,
+  fallback: string,
+): string {
+  if (dataCount === 0) return fallback
+  let first: string | undefined
+  for (let i = 0; i < dataCount; i++) {
+    const c = overrides[`${seriesIdx}:${i}`]?.color as string | undefined
+    if (!c) return fallback
+    if (!first) first = c
+    else if (c !== first) return fallback
+  }
+  return first ?? fallback
+}
