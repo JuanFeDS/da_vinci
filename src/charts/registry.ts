@@ -1,4 +1,5 @@
 import { BarChart } from './BarChart'
+import { HorizontalBarChart } from './HorizontalBarChart'
 import { GroupedBarChart } from './GroupedBarChart'
 import { StackedBarChart } from './StackedBarChart'
 import { LineChart } from './LineChart'
@@ -13,7 +14,7 @@ import { TreemapChart } from './TreemapChart'
 import type { ChartPlugin, ChartCategory } from '@/types/chart.types'
 
 export const CHART_REGISTRY: ChartPlugin[] = [
-  BarChart, GroupedBarChart, StackedBarChart,
+  BarChart, HorizontalBarChart, GroupedBarChart, StackedBarChart,
   LineChart, AreaChart,
   HistogramChart,
   ScatterChart, BubbleChart, HeatmapChart,
