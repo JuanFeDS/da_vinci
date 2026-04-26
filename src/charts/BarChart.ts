@@ -3,6 +3,7 @@ import type { ChartPlugin, ChartConfig } from '@/types/chart.types'
 import type { DataRow } from '@/types/data.types'
 import type { Theme } from '@/types/theme.types'
 import { resolveItemColor, getOverrideForItem } from './utils/colorResolver'
+import { compactNumber } from './utils/numberFormat'
 
 const BAR_CONFIG_SECTIONS = [
   {
@@ -12,6 +13,14 @@ const BAR_CONFIG_SECTIONS = [
       { key: 'xAxis', label: 'Eje X (categorías)', type: 'select' as const, defaultValue: '' },
       { key: 'yAxis', label: 'Eje Y (valores)', type: 'select' as const, defaultValue: '' },
       { key: 'title', label: 'Título del gráfico', type: 'text' as const, defaultValue: '' },
+      { key: 'sortBy', label: 'Ordenar por columna', type: 'select' as const, defaultValue: '' },
+      {
+        key: 'sortOrder', label: 'Dirección', type: 'select' as const, defaultValue: 'asc',
+        options: [
+          { label: 'Ascendente', value: 'asc' },
+          { label: 'Descendente', value: 'desc' },
+        ],
+      },
     ],
   },
   {
@@ -64,6 +73,18 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
     })
   }
 
+  // 3. Apply sortBy: overrides categoryOrder when a sort is selected
+  const sortBy = (config.sortBy as string | undefined) ?? 'none'
+  const sortOrder = (config.sortOrder as string | undefined) ?? 'asc'
+  if (sortBy) {
+    const dir = sortOrder === 'desc' ? -1 : 1
+    const isNumeric = workingData.length > 0 && !isNaN(Number(workingData[0][sortBy]))
+    workingData = [...workingData].sort((a, b) => {
+      if (isNumeric) return dir * (Number(a[sortBy] ?? 0) - Number(b[sortBy] ?? 0))
+      return dir * String(a[sortBy] ?? '').localeCompare(String(b[sortBy] ?? ''))
+    })
+  }
+
   const categories = workingData.map((r) => String(r[config.xAxis] ?? ''))
   const overrides = config.elementOverrides as Record<string, Record<string, unknown>>
   const isHorizontal = config.horizontal as boolean
@@ -107,19 +128,19 @@ function buildOption(data: DataRow[], config: ChartConfig, theme: Theme): EChart
   return {
     backgroundColor: theme.backgroundColor,
     title: config.title ? { text: config.title, textStyle: { color: '#fff', fontFamily: theme.fontFamily, fontSize: 16 }, left: 'center', top: 12 } : undefined,
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#fff' } },
+    tooltip: { trigger: 'axis', backgroundColor: 'rgba(0,0,0,0.8)', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#fff' }, valueFormatter: (v: unknown) => compactNumber(v as number) },
     legend: config.showLegend ? { textStyle: { color: theme.textColor }, bottom: 0 } : undefined,
     grid: { top: config.title ? 56 : 24, left: 48, right: 24, bottom: 40, containLabel: true },
     xAxis: isHorizontal
-      ? { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } }
+      ? { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize, formatter: (v: number) => compactNumber(v) }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } }
       : { type: 'category', data: categories, triggerEvent: true, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation, ...(showAllTicks ? { interval: 0 } : {}), ...(labelFormatter ? { formatter: labelFormatter } : {}) }, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } }, splitLine: { show: false } },
     yAxis: isHorizontal
       ? { type: 'category', data: categories, triggerEvent: true, axisLabel: { color: theme.textColor, fontSize: theme.fontSize, rotate: tickRotation, ...(showAllTicks ? { interval: 0 } : {}), ...(labelFormatter ? { formatter: labelFormatter } : {}) }, axisLine: { lineStyle: { color: 'transparent' } } }
-      : { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
+      : { type: 'value', axisLabel: { color: theme.textColor, fontSize: theme.fontSize, formatter: (v: number) => compactNumber(v) }, splitLine: { lineStyle: { color: config.showGrid ? theme.gridColor : 'transparent' } }, axisLine: { lineStyle: { color: 'transparent' } } },
     series: [{
       type: 'bar',
       data: seriesData,
-      label: config.showLabels ? { show: true, color: '#fff', fontSize: 11 } : { show: false },
+      label: config.showLabels ? { show: true, color: '#fff', fontSize: 11, formatter: (p: { value: unknown }) => compactNumber(p.value as number) } : { show: false },
       emphasis: { itemStyle: { opacity: 1, shadowBlur: 16, shadowColor: `${baseColor}66` } },
     }],
   }
@@ -147,7 +168,7 @@ export const BarChart: ChartPlugin = {
     horizontal: false,
     showLabels: false,
     numericColumns: [], colorMode: 'uniform', colorField: '', colorMap: {}, elementOverrides: {}, tickRotation: 0,
-    showAllTicks: false, labelOverrides: {},
+    showAllTicks: false, labelOverrides: {}, sortBy: '', sortOrder: 'asc',
   },
   buildOption,
   supportsColorBy: true,
