@@ -36,7 +36,7 @@ interface Props {
 export function TemplatePresets({ onApply }: Props) {
   return (
     <div className="space-y-2">
-      <p className="section-label">Plantillas rápidas</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Plantillas rápidas</p>
       <div className="grid grid-cols-2 gap-1.5">
         {PRESETS.map(({ id, label, Icon, overrides }) => (
           <button

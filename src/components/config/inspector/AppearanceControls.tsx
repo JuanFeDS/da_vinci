@@ -20,7 +20,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function AppearanceControls({ override, onUpdate, onUpdateAll }: Props) {
   return (
     <div className="space-y-3">
-      <p className="section-label">Apariencia</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Apariencia</p>
 
       <Row label="Color">
         <div className="flex items-center gap-2">

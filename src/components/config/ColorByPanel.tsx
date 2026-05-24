@@ -22,7 +22,7 @@ const MODES: { id: ColorMode; label: string; desc: string }[] = [
 export function ColorByPanel({ colorMode, colorField, colorMap, columns, categoryValues, themeColors, onModeChange, onFieldChange, onColorMapChange }: Props) {
   return (
     <div className="space-y-4">
-      <p className="section-label">Modo de color</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Modo de color</p>
 
       <div className="space-y-1.5">
         {MODES.map((m) => (
@@ -50,9 +50,9 @@ export function ColorByPanel({ colorMode, colorField, colorMap, columns, categor
 
       {(colorMode === 'byCategory' || colorMode === 'customMap') && (
         <div className="space-y-2">
-          <p className="section-label">Columna de color</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Columna de color</p>
           <select
-            className="input-field w-full text-xs"
+            className="bg-white/[0.06] border border-white/[0.12] rounded-md pl-2.5 pr-7 py-1.5 text-xs text-white/90 focus:outline-none focus:border-accent/50 focus:bg-white/[0.08] transition-all duration-150 w-full"
             value={colorField}
             onChange={(e) => onFieldChange(e.target.value)}
           >
@@ -64,7 +64,7 @@ export function ColorByPanel({ colorMode, colorField, colorMap, columns, categor
 
       {colorMode === 'customMap' && colorField && categoryValues.length > 0 && (
         <div className="space-y-2">
-          <p className="section-label">Mapa de colores</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Mapa de colores</p>
           <div className="space-y-1.5 max-h-52 overflow-y-auto">
             {categoryValues.map((val, i) => {
               const defaultColor = themeColors[i % themeColors.length]

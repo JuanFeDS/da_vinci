@@ -13,7 +13,7 @@ export function ControlRenderer({ control, value, columns, onChange }: Props) {
     const opts = control.options ? control.options.map((o) => o.value) : columns
     return (
       <select
-        className="input-field w-full text-xs"
+        className="bg-white/[0.06] border border-white/[0.12] rounded-md pl-2.5 pr-7 py-1.5 text-xs text-white/90 focus:outline-none focus:border-accent/50 focus:bg-white/[0.08] transition-all duration-150 w-full"
         value={value as string}
         onChange={(e) => onChange(control.key, e.target.value)}
       >
@@ -59,9 +59,9 @@ export function ControlRenderer({ control, value, columns, onChange }: Props) {
           step={control.step ?? 1}
           value={value as number}
           onChange={(e) => onChange(control.key, Number(e.target.value))}
-          className="flex-1 accent-[#7c6aff] h-1 cursor-pointer"
+          className="flex-1 cursor-pointer"
         />
-        <span className="text-xs text-white/40 w-7 text-right tabular-nums shrink-0">{value as number}</span>
+        <span className="text-xs text-white/50 w-7 text-right tabular-nums shrink-0">{value as number}</span>
       </div>
     )
   }
@@ -70,11 +70,33 @@ export function ControlRenderer({ control, value, columns, onChange }: Props) {
     return (
       <input
         type="text"
-        className="input-field w-full text-xs"
+        className="bg-white/[0.06] border border-white/[0.12] rounded-md px-2.5 py-1.5 text-xs text-white/90 placeholder:text-white/25 focus:outline-none focus:border-accent/50 focus:bg-white/[0.08] transition-all duration-150 w-full"
         value={(value as string) ?? ''}
         placeholder="Sin título"
         onChange={(e) => onChange(control.key, e.target.value)}
       />
+    )
+  }
+
+  if (control.type === 'color') {
+    const current = value as string
+    return (
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={current || '#7c6aff'}
+          onChange={(e) => onChange(control.key, e.target.value)}
+          className="w-8 h-8 rounded cursor-pointer border border-white/10 bg-transparent p-0.5"
+        />
+        {current && (
+          <button
+            onClick={() => onChange(control.key, '')}
+            className="text-xs text-white/40 hover:text-white/70 transition-colors"
+          >
+            limpiar
+          </button>
+        )}
+      </div>
     )
   }
 

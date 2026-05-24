@@ -168,7 +168,7 @@ function App() {
           <span className="text-xs text-white/20 ml-1">by you</span>
         </button>
         {data && (
-          <div className="flex items-center gap-1.5 glass rounded-lg px-3 py-1.5">
+          <div className="flex items-center gap-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-1.5">
             <Database className="w-3.5 h-3.5 text-accent-light" />
             <span className="text-xs text-white/60">
               {data.dataset_info.filename} · {data.dataset_info.rows.toLocaleString()} filas
@@ -240,7 +240,7 @@ function App() {
 
         {/* Right config panel */}
         {showWorkspace && (
-          <aside className="w-72 shrink-0 border-l border-white/5 glass">
+          <aside className="w-72 shrink-0 border-l border-white/5 bg-white/5 backdrop-blur-sm">
             <ConfigPanel
               plugin={plugin}
               config={config}

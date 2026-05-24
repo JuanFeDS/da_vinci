@@ -11,7 +11,7 @@ interface Props {
 export function ColorEditor({ themes, activeId, onSelect }: Props) {
   return (
     <div className="space-y-2">
-      <p className="section-label">Paleta de colores</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Paleta de colores</p>
       <div className="grid grid-cols-2 gap-1.5">
         {themes.map((theme) => {
           const isActive = theme.id === activeId

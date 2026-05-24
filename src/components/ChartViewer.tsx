@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react'
 import type EChartsReact from 'echarts-for-react'
 import { Download, RotateCcw, FileJson, MousePointer2, GripVertical, Type } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import type { ChartPlugin, ChartConfig, InspectedElement, TextBlock } from '@/types/chart.types'
+import type { ChartPlugin, ChartConfig, InspectedElement, TextBlock, DataFilter } from '@/types/chart.types'
 import type { Theme } from '@/types/theme.types'
 import type { DataRow } from '@/types/data.types'
 import { exportChartAsPNG } from '@/utils/chartExport'
@@ -117,10 +117,21 @@ export function ChartViewer({
     ? plugin.canRender(config)
     : !!(config.xAxis && config.yAxis)
 
+  const filteredData = useMemo(() => {
+    const filters = (config.filters as DataFilter[] | undefined) ?? []
+    if (filters.length === 0) return data
+    return data.filter((row) =>
+      filters.every((f) => {
+        if (!f.column || f.selectedValues.length === 0) return true
+        return f.selectedValues.includes(String(row[f.column] ?? ''))
+      }),
+    )
+  }, [data, config.filters])
+
   const option = useMemo(() => {
     if (!canRender) return null
-    return plugin.buildOption(data, config, theme)
-  }, [plugin, config, data, theme, canRender])
+    return plugin.buildOption(filteredData, config, theme)
+  }, [plugin, config, filteredData, theme, canRender])
 
   // Inject persisted legend selection so ECharts applies it even after a merge update
   const displayOption = useMemo(() => {
@@ -449,7 +460,7 @@ export function ChartViewer({
 
   return (
     <div className={cn(
-      'relative flex flex-col h-full glass rounded-2xl overflow-hidden transition-all duration-200',
+      'relative flex flex-col h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden transition-all duration-200',
       inspectorActive && 'ring-1 ring-accent/40',
       dragMode && 'ring-1 ring-emerald-500/40',
     )}>
@@ -481,7 +492,7 @@ export function ChartViewer({
                 'flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-all duration-200 border',
                 dragMode
                   ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                  : 'btn-ghost border-transparent',
+                  : 'text-white/60 hover:text-white hover:bg-white/10 border-transparent',
               )}
             >
               <GripVertical className="w-3.5 h-3.5" />
@@ -490,7 +501,7 @@ export function ChartViewer({
           <button
             onClick={addTextBlock}
             title="Agregar bloque de texto"
-            className="btn-ghost border-transparent flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-all duration-200 border"
+            className="text-white/60 hover:text-white hover:bg-white/10 border border-transparent flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-all duration-200"
           >
             <Type className="w-3.5 h-3.5" />
           </button>
@@ -501,18 +512,18 @@ export function ChartViewer({
               'flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-all duration-200 border',
               inspectorActive
                 ? 'bg-accent/20 border-accent/40 text-accent-light'
-                : 'btn-ghost border-transparent',
+                : 'text-white/60 hover:text-white hover:bg-white/10 border-transparent',
             )}
           >
             <MousePointer2 className="w-3.5 h-3.5" />
           </button>
-          <button onClick={onReset} className="btn-ghost text-xs flex items-center gap-1.5 py-1.5">
+          <button onClick={onReset} className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 px-2 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
             <RotateCcw className="w-3.5 h-3.5" /> Reset
           </button>
-          <button onClick={handleExportJSON} className="btn-ghost text-xs flex items-center gap-1.5 py-1.5">
+          <button onClick={handleExportJSON} className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 px-2 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
             <FileJson className="w-3.5 h-3.5" /> JSON
           </button>
-          <button onClick={handleExport} className="btn-primary text-xs flex items-center gap-1.5 py-1.5">
+          <button onClick={handleExport} className="bg-accent hover:bg-accent-hover text-white font-medium px-4 py-1.5 rounded-lg transition-all duration-200 text-xs flex items-center gap-1.5">
             <Download className="w-3.5 h-3.5" /> PNG
           </button>
         </div>
@@ -613,7 +624,7 @@ export function ChartViewer({
         {/* Action popup */}
         {actionPopup && (
           <div
-            className="absolute z-50 glass border border-white/10 rounded-xl shadow-2xl p-3"
+            className="absolute z-50 bg-surface-900 border border-white/10 rounded-xl shadow-2xl p-3"
             style={{ left: actionPopup.x, top: actionPopup.y, minWidth: 220 }}
           >
             {actionPopup.stage === 'choice' ? (
@@ -630,13 +641,13 @@ export function ChartViewer({
                 <div className="flex flex-col gap-1.5">
                   <button
                     onClick={handleReorderAction}
-                    className="btn-ghost text-xs text-left px-2.5 py-2 rounded-lg hover:bg-white/10"
+                    className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 text-xs text-left px-2.5 py-2 rounded-lg w-full"
                   >
                     ↔ Intercambiar posición
                   </button>
                   <button
                     onClick={() => setActionPopup((p) => p && { ...p, stage: 'merge' })}
-                    className="btn-primary text-xs px-2.5 py-2 rounded-lg text-left"
+                    className="bg-accent hover:bg-accent-hover text-white font-medium transition-all duration-200 text-xs px-2.5 py-2 rounded-lg text-left w-full"
                   >
                     ⊕ Combinar en una barra
                   </button>
@@ -646,17 +657,17 @@ export function ChartViewer({
               <>
                 <p className="text-xs text-white/40 mb-1.5">Nombre del grupo combinado</p>
                 <input
-                  className="w-full glass rounded-lg px-2.5 py-1.5 text-xs text-white border border-white/10 focus:border-accent/50 outline-none mb-2"
+                  className="w-full bg-white/[0.06] rounded-lg px-2.5 py-1.5 text-xs text-white border border-white/[0.12] focus:border-accent/50 focus:bg-white/[0.08] outline-none mb-2 transition-all duration-150"
                   value={actionPopup.mergeLabel}
                   onChange={(e) => setActionPopup((p) => p && { ...p, mergeLabel: e.target.value })}
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleMergeAction()}
                 />
                 <div className="flex gap-1.5">
-                  <button onClick={handleMergeAction} className="btn-primary text-xs flex-1 py-1.5">
+                  <button onClick={handleMergeAction} className="bg-accent hover:bg-accent-hover text-white font-medium px-4 py-1.5 rounded-lg transition-all duration-200 text-xs flex-1">
                     Confirmar
                   </button>
-                  <button onClick={() => setActionPopup(null)} className="btn-ghost text-xs px-3 py-1.5">
+                  <button onClick={() => setActionPopup(null)} className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 text-xs px-3 py-1.5 rounded-lg">
                     Cancelar
                   </button>
                 </div>

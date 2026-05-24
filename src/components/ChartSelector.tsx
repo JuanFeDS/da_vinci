@@ -22,13 +22,13 @@ interface Props {
 export function ChartSelector({ activeId, onSelect }: Props) {
   return (
     <div className="space-y-4">
-      <p className="section-label px-1">Tipo de gráfico</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40 px-1">Tipo de gráfico</p>
       {CHART_CATEGORIES.map((cat) => {
         const plugins = CHART_REGISTRY.filter((p) => p.category === cat.id)
         if (!plugins.length) return null
         return (
           <div key={cat.id} className="space-y-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/20 px-1">{cat.label}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 px-1">{cat.label}</p>
             <div className="grid grid-cols-3 gap-1.5">
               {plugins.map((plugin) => {
                 const Icon = ICON_MAP[plugin.icon] ?? BarChart2

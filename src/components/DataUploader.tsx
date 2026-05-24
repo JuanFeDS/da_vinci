@@ -39,7 +39,7 @@ export function DataUploader({ onDataLoaded }: Props) {
   return (
     <div className="w-full">
       {status === 'success' ? (
-        <div className="flex items-center gap-3 glass rounded-xl px-4 py-3">
+        <div className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3">
           <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{filename}</p>
@@ -53,8 +53,8 @@ export function DataUploader({ onDataLoaded }: Props) {
         <div
           {...getRootProps()}
           className={cn(
-            'relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-8 cursor-pointer transition-all duration-200',
-            isDragActive ? 'border-accent bg-accent/10' : 'border-white/10 hover:border-white/30 hover:bg-white/5',
+            'relative flex flex-col items-center justify-center gap-3 rounded-xl border px-6 py-6 cursor-pointer transition-all duration-200',
+            isDragActive ? 'border-accent border-dashed bg-accent/10' : 'border-white/[0.08] hover:border-white/20 hover:bg-white/[0.03]',
             status === 'error' && 'border-red-500/50 bg-red-500/5',
           )}
         >
@@ -62,7 +62,7 @@ export function DataUploader({ onDataLoaded }: Props) {
           {status === 'loading' ? (
             <Loader2 className="w-8 h-8 text-accent animate-spin" />
           ) : (
-            <div className={cn('p-3 rounded-xl', isDragActive ? 'bg-accent/20' : 'bg-white/5')}>
+            <div className={cn('p-2.5 rounded-lg', isDragActive ? 'bg-accent/20' : 'bg-white/[0.06]')}>
               {status === 'error' ? (
                 <FileSpreadsheet className="w-6 h-6 text-red-400" />
               ) : (

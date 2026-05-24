@@ -19,7 +19,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function LabelControls({ override, onUpdate }: Props) {
   return (
     <div className="space-y-3">
-      <p className="section-label">Etiqueta</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Etiqueta</p>
 
       <Row label="Mostrar">
         <button
@@ -41,7 +41,7 @@ export function LabelControls({ override, onUpdate }: Props) {
       <Row label="Texto">
         <input
           type="text"
-          className="input-field text-xs w-32"
+          className="bg-white/[0.06] border border-white/[0.12] rounded-md px-2.5 py-1.5 text-xs text-white/90 placeholder:text-white/25 focus:outline-none focus:border-accent/50 focus:bg-white/[0.08] transition-all duration-150 w-32"
           placeholder="Auto"
           value={(override.labelText as string) ?? ''}
           onChange={(e) => onUpdate({ labelText: e.target.value || undefined })}

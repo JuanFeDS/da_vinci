@@ -19,7 +19,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function BorderControls({ override, onUpdate }: Props) {
   return (
     <div className="space-y-3">
-      <p className="section-label">Borde</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Borde</p>
 
       <Row label="Color borde">
         <div className="flex items-center gap-2">

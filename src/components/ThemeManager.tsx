@@ -34,7 +34,7 @@ export function ThemeManager({ themes, activeId, onSelect, onThemeAdded }: Props
 
   return (
     <div className="space-y-3">
-      <p className="section-label">Tema de color</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Tema de color</p>
 
       <div className="grid grid-cols-3 gap-2">
         {themes.map((theme) => (
@@ -67,18 +67,18 @@ export function ThemeManager({ themes, activeId, onSelect, onThemeAdded }: Props
         {activeTheme && (
           <button
             onClick={() => exportThemeAsJSON(activeTheme)}
-            className="btn-ghost text-xs flex items-center gap-1.5 py-1.5 flex-1 justify-center"
+            className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 text-xs flex items-center gap-1.5 py-1.5 flex-1 justify-center"
           >
             <Download className="w-3 h-3" />
             Exportar
           </button>
         )}
-        <label className={cn('btn-ghost text-xs flex items-center gap-1.5 py-1.5 flex-1 justify-center cursor-pointer', importing && 'opacity-50')}>
+        <label className={cn('text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 text-xs flex items-center gap-1.5 py-1.5 flex-1 justify-center cursor-pointer', importing && 'opacity-50')}>
           <Upload className="w-3 h-3" />
           Importar
           <input type="file" accept=".json" className="hidden" onChange={handleImport} disabled={importing} />
         </label>
-        <button className="btn-ghost text-xs flex items-center gap-1.5 py-1.5 justify-center px-2" title="Nuevo tema">
+        <button className="text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 text-xs flex items-center gap-1.5 py-1.5 justify-center px-2" title="Nuevo tema">
           <Plus className="w-3 h-3" />
         </button>
       </div>
