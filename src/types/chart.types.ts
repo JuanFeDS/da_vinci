@@ -22,6 +22,12 @@ export interface TextBlock {
   italic: boolean
 }
 
+export interface DataFilter {
+  id: string
+  column: string
+  selectedValues: string[]
+}
+
 export interface ElementOverride {
   color?: string
   opacity?: number
@@ -54,6 +60,7 @@ export interface ConfigControl {
   min?: number
   max?: number
   step?: number
+  group?: string
 }
 
 export interface ConfigSection {
