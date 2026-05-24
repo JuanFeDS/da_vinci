@@ -1,5 +1,5 @@
 import Papa from 'papaparse'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import type { ProcessedData, DataRow, ColumnInfo } from '@/types/data.types'
 
 function isNumeric(values: unknown[]): boolean {
@@ -68,6 +68,46 @@ function buildProcessedData(
   }
 }
 
+function extractCellValue(cell: ExcelJS.Cell): unknown {
+  const v = cell.value
+  if (v === null || v === undefined) return null
+  if (v instanceof Date) return v.toISOString()
+  if (typeof v === 'object') {
+    if ('result' in v) return (v as ExcelJS.CellFormulaValue).result ?? null
+    if ('richText' in v) return (v as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join('')
+    if ('text' in v) return (v as ExcelJS.CellHyperlinkValue).text
+    if ('error' in v) return null
+  }
+  return v
+}
+
+async function parseXlsx(buffer: ArrayBuffer, filename: string): Promise<ProcessedData> {
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(buffer as Buffer)
+  const ws = wb.worksheets[0]
+  if (!ws) throw new Error('El archivo no contiene hojas')
+
+  const colCount = ws.columnCount
+  const headers: string[] = []
+  const headerRow = ws.getRow(1)
+  for (let i = 1; i <= colCount; i++) {
+    const val = headerRow.getCell(i).value
+    headers.push(val !== null && val !== undefined ? String(val) : `col${i}`)
+  }
+
+  const rows: Record<string, unknown>[] = []
+  ws.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return
+    const obj: Record<string, unknown> = {}
+    headers.forEach((header, i) => {
+      obj[header] = extractCellValue(row.getCell(i + 1))
+    })
+    rows.push(obj)
+  })
+
+  return buildProcessedData(rows, filename, rows.length)
+}
+
 export async function processFile(file: File): Promise<ProcessedData> {
   const name = file.name.toLowerCase()
 
@@ -90,10 +130,7 @@ export async function processFile(file: File): Promise<ProcessedData> {
 
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
     const buffer = await file.arrayBuffer()
-    const wb = XLSX.read(buffer, { type: 'array' })
-    const ws = wb.Sheets[wb.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null })
-    return buildProcessedData(rows, file.name, rows.length)
+    return parseXlsx(buffer, file.name)
   }
 
   throw new Error('Formato no soportado. Usa CSV o XLSX.')
