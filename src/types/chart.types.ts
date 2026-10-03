@@ -2,7 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { DataRow, ProcessedData } from './data.types'
 import type { Theme } from './theme.types'
 
-export type ControlType = 'select' | 'color' | 'switch' | 'slider' | 'text'
+export type ControlType = 'select' | 'color' | 'switch' | 'slider' | 'text' | 'number'
 
 export type ChartCategory = 'comparison' | 'trend' | 'distribution' | 'correlation' | 'proportion'
 
